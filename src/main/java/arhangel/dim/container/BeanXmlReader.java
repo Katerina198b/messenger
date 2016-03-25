@@ -1,13 +1,5 @@
 package arhangel.dim.container;
 
-<<<<<<< HEAD
-import java.util.List;
-
-/**
- *
- */
-public class BeanXmlReader {
-=======
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.DocumentBuilder;
 
@@ -29,7 +21,6 @@ import java.util.HashMap;
 
 public class BeanXmlReader {
 
->>>>>>> origin/Katerina198b-container
     private static final String TAG_BEAN = "bean";
     private static final String TAG_PROPERTY = "property";
     private static final String ATTR_NAME = "name";
@@ -38,13 +29,6 @@ public class BeanXmlReader {
     private static final String ATTR_BEAN_ID = "id";
     private static final String ATTR_BEAN_CLASS = "class";
 
-<<<<<<< HEAD
-    public List<Bean> parseBeans(String pathToFile) {
-        return null;
-    }
-
-}
-=======
     public List<Bean> parseBeans(String fileName) throws ParserConfigurationException {
         try {
             File fxml = new File(fileName);
@@ -89,4 +73,3 @@ public class BeanXmlReader {
         }
     }
 }
->>>>>>> origin/Katerina198b-container
