@@ -8,7 +8,7 @@ public class ProtocolException extends Exception {
         super(msg);
     }
 
-    public ProtocolException(Throwable ex) {
+    public ProtocolException(String s, Throwable ex) {
         super(ex);
     }
 }

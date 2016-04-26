@@ -32,6 +32,7 @@ public class TextMessage extends Message {
     }
 
     @Override
+    // Зачем элементу hashcode?
     public int hashCode() {
         return Objects.hash(super.hashCode(), text);
     }

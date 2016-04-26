@@ -13,26 +13,32 @@ public abstract class Message implements Serializable {
     private Type type;
 
     public Long getId() {
+
         return id;
     }
 
     public void setId(Long id) {
+
         this.id = id;
     }
 
     public Long getSenderId() {
+
         return senderId;
     }
 
     public void setSenderId(Long senderId) {
+
         this.senderId = senderId;
     }
 
     public Type getType() {
+
         return type;
     }
 
     public void setType(Type type) {
+
         this.type = type;
     }
 
@@ -52,6 +58,7 @@ public abstract class Message implements Serializable {
 
     @Override
     public int hashCode() {
+
         return Objects.hash(id, senderId, type);
     }
 

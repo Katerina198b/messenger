@@ -1,5 +1,6 @@
 package arhangel.dim.core.net;
 
+import arhangel.dim.core.messages.LoginMessage;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -29,6 +30,15 @@ public class StringProtocol implements Protocol {
                 textMsg.setText(tokens[2]);
                 textMsg.setType(type);
                 return textMsg;
+
+            case MSG_LOGIN:
+                LoginMessage sendMessage = new LoginMessage();
+                sendMessage.setSenderId(Long.valueOf(tokens[1]));
+                sendMessage.setLogin(tokens[2]);
+                sendMessage.setPassword(tokens[3]);
+                sendMessage.setType(Type.MSG_LOGIN);
+                return sendMessage;
+
             default:
                 throw new ProtocolException("Invalid type: " + type);
         }
@@ -58,7 +68,7 @@ public class StringProtocol implements Protocol {
         try {
             return Long.parseLong(str);
         } catch (Exception e) {
-            // who care
+            //
         }
         return null;
     }

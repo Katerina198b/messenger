@@ -27,4 +27,6 @@ public class BinaryProtocolTest {
         Assert.assertEquals(message, other);
 
     }
+
+
 }

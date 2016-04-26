@@ -22,14 +22,14 @@ public class JdbcExample {
 
         Class.forName("org.postgresql.Driver");
 
-        Connection connection = DriverManager.getConnection("jdbc:postgresql://178.62.140.149:5432/main",
+        Connection connection = DriverManager.getConnection("jdbc:postgresql://178.62.140.149:5432/Katerina198b",
                 "trackuser", "trackuser");
 
         Statement stmt;
         String sql;
 
         stmt = connection.createStatement();
-        sql = "CREATE TABLE IF NOT EXISTS company" +
+        sql = "CREATE TABLE IF NOT EXISTS Useer" +
                 "(ID INT PRIMARY KEY     NOT NULL," +
                 " NAME           TEXT    NOT NULL, " +
                 " AGE            INT     NOT NULL, " +

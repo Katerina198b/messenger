@@ -28,11 +28,8 @@
                 <artifactId>exec-maven-plugin</artifactId>
                 <version>1.4.0</version>
                 <configuration>
-<<<<<<< HEAD
-                    <mainClass>arhangel.dim.container.BeanXmlReader</mainClass>
-=======
-                    <mainClass>arhangel.dim.lections.jdbc.JdbcExample</mainClass>
->>>>>>> upstream/master
+                    <mainClass>arhangel.dim.container.Container</mainClass>
+
                 </configuration>
             </plugin>
             <plugin>

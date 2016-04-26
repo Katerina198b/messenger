@@ -7,6 +7,7 @@ import java.net.Socket;
 
 import arhangel.dim.core.User;
 import arhangel.dim.core.messages.Message;
+import arhangel.dim.server.Server;
 
 /**
  * Здесь храним всю информацию, связанную с отдельным клиентом.
@@ -30,9 +31,17 @@ public class Session implements ConnectionHandler {
     private InputStream in;
     private OutputStream out;
 
+    public Session(Socket socket, Server server) throws IOException {
+        this.socket = socket;
+        this.in = socket.getInputStream();
+        this.out = socket.getOutputStream();
+    }
+
+
     @Override
     public void send(Message msg) throws ProtocolException, IOException {
         // TODO: Отправить клиенту сообщение
+
     }
 
     @Override
