@@ -39,6 +39,16 @@ public class ListBlockingQueue<E> implements BlockingQueue<E> {
         return null;
     }
 
+    @Override
+    public E poll(int timeout) {
+        return null;
+    }
+
+    @Override
+    public boolean offer(E t) {
+        return false;
+    }
+
     private boolean isFull() {
         return list.size() == capacity;
     }

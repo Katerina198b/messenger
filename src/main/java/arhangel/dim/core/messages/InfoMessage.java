@@ -1,3 +1,6 @@
+/* получить всю информацию о пользователе,
+ * без аргументов - о себе (только для залогиненных пользователей)
+ */
 package arhangel.dim.core.messages;
 
 import java.util.Objects;
@@ -5,8 +8,8 @@ import java.util.Objects;
 public class InfoMessage extends Message {
     private int userId;
 
-    public void setUserId (int userId) {
-        this.userId = userId;
+    public void setUserId(String userId) {
+        this.userId = Integer.valueOf(userId);
     }
 
     public int getUserId() {

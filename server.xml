@@ -1,12 +1,9 @@
 <root>
 
         <bean id="protocol" class="arhangel.dim.core.net.StringProtocol"/>
-        <bean id="userstore" class="arhangel.dim.core.store.UserStore"/>
-        <bean id="messagestore" class="arhangel.dim.core.store.MessageStore"/>
 
         <bean id="server" class="arhangel.dim.server.Server">
             <property name="port" val="19000"/>
-            <property name="host" val="localhost"/>
             <property name="protocol" ref="arhangel.dim.core.net.StringProtocol"/>
         </bean>
 

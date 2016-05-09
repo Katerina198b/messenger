@@ -16,4 +16,9 @@ public interface BlockingQueue<E> {
      * @return the head element
      */
     E take() throws InterruptedException;
+
+    E poll(int timeout) throws InterruptedException;
+
+    boolean offer(E tt) throws InterruptedException;
+
 }

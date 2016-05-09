@@ -1,8 +1,10 @@
 package arhangel.dim.container;
 
+import arhangel.dim.client.Client;
 import arhangel.dim.container.beans.Car;
 import arhangel.dim.container.beans.Engine;
 import arhangel.dim.container.beans.Gear;
+import arhangel.dim.core.net.StringProtocol;
 import org.junit.Assert;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -52,4 +54,5 @@ public class ContainerTest {
         Assert.assertEquals(expectedCar, car);
 
     }
+
 }

@@ -3,7 +3,9 @@ package arhangel.dim.client;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.net.InetAddress;
 import java.net.Socket;
+import java.net.SocketException;
 import java.util.Arrays;
 import java.util.Scanner;
 
@@ -85,7 +87,6 @@ public class Client implements ConnectionHandler {
          * Инициализируем поток-слушатель. Синтаксис лямбды скрывает создание анонимного класса Runnable
          */
         socketThread = new Thread(() -> {
-            // откуда это магическое число?
             final byte[] buf = new byte[1024 * 64];
             log.info("Starting listener thread...");
             /*
@@ -103,9 +104,9 @@ public class Client implements ConnectionHandler {
                         Message msg = protocol.decode(Arrays.copyOf(buf, read));
                         onMessage(msg);
                     }
-                } catch (Exception e) {
-                    // ioexceptions connectionrefused
-                    log.error("Failed to process connection: {}", e);
+                } catch (SocketException e) {
+                    return;
+                } catch (IOException | ProtocolException e) {
                     e.printStackTrace();
                 }
             }
@@ -120,6 +121,7 @@ public class Client implements ConnectionHandler {
     @Override
     public void onMessage(Message msg) {
         log.info("Message received: {}", msg);
+        msg.toString();
 
     }
 
@@ -153,35 +155,67 @@ public class Client implements ConnectionHandler {
 
             case "/text":
                 if (tokens.length == 3) {
-                    TextMessage sendMessage = new TextMessage();
-                    sendMessage.setType(Type.MSG_TEXT);
-                    sendMessage.setText(tokens[1]);
-                    send(sendMessage);
+                    TextMessage textMessage = new TextMessage();
+                    textMessage.setType(Type.MSG_TEXT);
+                    textMessage.setChatId(tokens[1]);
+                    textMessage.setText(tokens[2]);
+                    send(textMessage);
                 } else {
                     log.error("incorrect input: you enter {} words, but had 3 words", tokens.length);
                 }
                 break;
+
             case "/info":
                 switch (tokens.length) {
                     case 1:
-                        //o себе
+                        InfoMessage infoMessage = new InfoMessage();
+                        // число -1 будет обозначать запрос о себе
+                        Integer userId = -1;
+                        infoMessage.setType(Type.MSG_INFO);
+                        infoMessage.setUserId(userId.toString());
+                        send(infoMessage);
+                        break;
                     case 2:
-                        InfoMessage sendMessage = new InfoMessage();
-                        Integer userId = Integer.valueOf(tokens[1]);
-                        sendMessage.setType(Type.MSG_INFO);
-                        sendMessage.setUserId(userId);
-                        send(sendMessage);
+                        InfoMessage message = new InfoMessage();
+                        Integer id = Integer.valueOf(tokens[1]);
+                        message.setType(Type.MSG_INFO);
+                        message.setUserId(id.toString());
+                        send(message);
                         break;
                     default:
                         log.error("incorrect input: you enter {} " +
                                 "words, but had 3 or 2 words", tokens.length);
                 }
                 break;
+
             case "/chat_list":
-                // что-нить
+                if (tokens.length == 1) {
+                    ChatListMessage chatListMessage = new ChatListMessage();
+                    chatListMessage.setType(Type.MSG_CHAT_LIST);
+                    send(chatListMessage);
+                } else {
+                    log.error("incorrect input: you enter {} words, but had 1 word", tokens.length);
+                }
+                break;
 
             case "/chat_create":
+                ChatCreateMessage chatCreateMessage = new ChatCreateMessage();
+                chatCreateMessage.setType(Type.MSG_CHAT_CREATE);
+                for (int i = 1; i < tokens.length + 1; i++) {
+                    chatCreateMessage.addId(tokens[i]);
+                }
+                send(chatCreateMessage);
+                break;
 
+            case "/chat_history":
+                if (tokens.length == 2) {
+                    ChatHistMessage chatHistMessage = new ChatHistMessage();
+                    chatHistMessage.setType(Type.MSG_CHAT_HIST);
+                    chatHistMessage.setChatId(tokens[1]);
+                } else {
+                    log.error("incorrect input: you enter {} words, but had 2 words", tokens.length);
+                }
+                break;
 
             default:
                 log.error("Invalid input: " + line);
@@ -206,14 +240,15 @@ public class Client implements ConnectionHandler {
     @Override
     public void close() {
         // TODO: написать реализацию. Закройте ресурсы и остановите поток-слушатель
-        socketThread.currentThread().interrupt();
+        socketThread.interrupt();
         try {
             in.close();
             out.close();
+        } catch (SocketException e) {
+            return;
         } catch (IOException e) {
             e.printStackTrace();
         }
-
     }
 
     public static void main(String[] args) throws Exception {

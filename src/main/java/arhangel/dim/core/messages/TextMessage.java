@@ -3,21 +3,44 @@ package arhangel.dim.core.messages;
 import java.util.Objects;
 
 /**
- * Простое текстовое сообщение
+ * отправить сообщение в заданный чат, чат должен быть в списке чатов пользователя
+ * (только для залогиненных пользователей)
  */
 public class TextMessage extends Message {
+
+    private long chatId;
+
     private String text;
 
     public String getText() {
+
         return text;
     }
 
     public void setText(String text) {
+
         this.text = text;
     }
 
+    public void setChatId(long chatId) {
+
+        this.chatId = chatId;
+    }
+
+    public void setChatId(String chatId) {
+
+        this.chatId = Long.valueOf(chatId);
+    }
+
+    public long getChatId() {
+
+        return chatId;
+    }
+
+
     @Override
     public boolean equals(Object other) {
+
         if (this == other) {
             return true;
         }
@@ -32,7 +55,6 @@ public class TextMessage extends Message {
     }
 
     @Override
-    // Зачем элементу hashcode?
     public int hashCode() {
         return Objects.hash(super.hashCode(), text);
     }

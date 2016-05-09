@@ -14,7 +14,8 @@ public enum Type {
     MSG_STATUS,
     MSG_CHAT_LIST_RESULT,
     MSG_CHAT_HIST_RESULT,
-    MSG_INFO_RESULT
+    MSG_INFO_RESULT,
+    MSG_ERROR,
 
 
 }

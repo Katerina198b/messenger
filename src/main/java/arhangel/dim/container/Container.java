@@ -105,9 +105,15 @@ public class Container {
 
             try {
                 if (bean.getProperties().get(name).getType() == ValueType.VAL) {
-                    Integer valueInteger = Integer.valueOf(bean.getProperties().get(name).getValue());
-                    int value = valueInteger.intValue();
-                    field.set(beanObject, value);
+                    try {
+                        Integer valueInteger = Integer.valueOf(bean.getProperties().get(name).getValue());
+                        field.set(beanObject, valueInteger);
+                    } catch (NumberFormatException e) {
+                        String valueString = bean.getProperties().get(name).getValue();
+                        //System.out.println(valueString);
+                        field.set(beanObject, valueString);
+                    }
+
 
                 } else {
                     Object referedObject = getByName(bean.getProperties().get(name).getValue());

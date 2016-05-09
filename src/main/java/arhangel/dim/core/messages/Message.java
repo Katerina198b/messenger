@@ -27,6 +27,11 @@ public abstract class Message implements Serializable {
         return senderId;
     }
 
+    public void setSenderId(String senderId) {
+
+        this.senderId = Long.valueOf(senderId);
+    }
+
     public void setSenderId(Long senderId) {
 
         this.senderId = senderId;
