@@ -3,6 +3,7 @@ package arhangel.dim.core.messages;
 import java.util.Objects;
 
 public class InfoResultMessage extends Message{
+
     private long userId;
     private String login;
 
@@ -13,7 +14,6 @@ public class InfoResultMessage extends Message{
     public void setUserId(Long userId) {
         this.userId = userId;
     }
-
 
     public void setLogin(String login) {
         this.login = login;

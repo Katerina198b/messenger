@@ -53,9 +53,11 @@ public class Session implements ConnectionHandler {
 
     @Override
     public void send(Message msg) throws ProtocolException, IOException {
-        // TODO: Отправить клиенту сообщение
+
+        //Отправить клиенту сообщение
         try {
             byte[] buf = protocol.encode(msg);
+            log.info("send: The message is sent to client");
             out.write(buf);
 
         } catch (Exception e) {
@@ -67,7 +69,9 @@ public class Session implements ConnectionHandler {
 
     @Override
     public void onMessage(Message msg) {
-        // TODO: Пришло некое сообщение от клиента, его нужно обработать
+
+        //Пришло некое сообщение от клиента, его нужно обработать
+        log.info("onMessage: {}", msg.toString());
         Type type = msg.getType();
         try {
             switch (type) {
@@ -113,13 +117,16 @@ public class Session implements ConnectionHandler {
     }
 
     public void expectMessage() {
+
         try {
             byte[] buf = new byte[32 * 1024];
-            int read = in.read(buf);
-            Message msg = protocol.decode(Arrays.copyOf(buf, read));
+            in.read(buf);
+            Message msg = protocol.decode(buf);
+            log.info("expectMessage: msg = {}", msg.toString());
             onMessage(msg);
 
         } catch (Exception e) {
+            log.error("expectMessage: ", e);
             e.printStackTrace();
         }
     }
@@ -128,13 +135,13 @@ public class Session implements ConnectionHandler {
     public void close() {
         // TODO: закрыть in/out каналы и сокет. Освободить другие ресурсы, если необходимо
         try {
-            log.info("Trying to close in/out channels and socket in Session");
+            log.info("close: Trying to close in/out channels and socket in Session");
             in.close();
             out.close();
             Thread.currentThread().interrupt();
         } catch (IOException e) {
-            log.error("Can't close in/out channels");
+            log.error("close: Can't close in/out channels");
             e.printStackTrace();
-    }
+        }
     }
 }

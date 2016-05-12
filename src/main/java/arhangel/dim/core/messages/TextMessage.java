@@ -6,10 +6,10 @@ import java.util.Objects;
  * отправить сообщение в заданный чат, чат должен быть в списке чатов пользователя
  * (только для залогиненных пользователей)
  */
+
 public class TextMessage extends Message {
 
     private long chatId;
-
     private String text;
 
     public String getText() {

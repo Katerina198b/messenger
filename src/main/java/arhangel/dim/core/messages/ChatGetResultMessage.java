@@ -1,12 +1,8 @@
 package arhangel.dim.core.messages;
 
-/**
- * список сообщений из указанного чата (только для залогиненных пользователей)
- */
-
 import java.util.Objects;
 
-public class ChatHistMessage extends Message {
+public class ChatGetResultMessage extends Message {
     private long chatId;
 
 
@@ -14,8 +10,12 @@ public class ChatHistMessage extends Message {
         return chatId;
     }
 
-    public void setChatId(String id) {
-        Integer chatId = new Integer(id);
+    public void setChatId(String chatId) {
+
+        this.chatId = Long.valueOf(chatId);
+    }
+
+    public void setChatId(long chatId) {
         this.chatId = chatId;
     }
 
@@ -30,7 +30,7 @@ public class ChatHistMessage extends Message {
         if (!super.equals(other)) {
             return false;
         }
-        ChatHistMessage message = (ChatHistMessage) other;
+        ChatGetResultMessage message = (ChatGetResultMessage) other;
         return Objects.equals(chatId, message.chatId);
     }
 

@@ -7,7 +7,7 @@ public interface BlockingQueue<E> {
 
     /**
      *
-     * @param e the element to add
+     * @param  the element to add
      */
     void put(E elem) throws InterruptedException;
 

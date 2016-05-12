@@ -6,60 +6,53 @@ package arhangel.dim.core.messages;
  * От сервера приходит список id чатов
  */
 
+import arhangel.dim.core.Chat;
 import arhangel.dim.core.User;
 import arhangel.dim.core.net.Session;
+import arhangel.dim.core.store.MessageOperations;
+import arhangel.dim.core.store.UserOperations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
 import java.sql.Statement;
+import java.util.List;
 import java.util.Optional;
 
 
 public class ChatListCommand implements Command {
+
+    private Logger log = LoggerFactory.getLogger(ChatListCommand.class);
+
     @Override
     public void execute(Session session, Message message) throws CommandException {
 
-        ChatListMessage msg = (ChatListMessage) message;
-        Optional<User> optionalUser = Optional.of(session.getUser());
+        ChatListMessage chatListMessage = (ChatListMessage) message;
+        Optional<User> optionalUser = Optional.ofNullable(session.getUser());
         try {
             if (optionalUser.isPresent()) {
-
-                Class.forName("org.postgresql.Driver");
-
-                Connection connection = DriverManager.getConnection("jdbc:postgresql://178.62.140.149:5432/Katerina198b",
-                        "trackuser", "trackuser");
-
-                Statement stmt;
-                stmt = connection.createStatement();
-                String sql;
-                sql = "SELECT * FROM Chat" +
-                        "WHERE participants= " + msg.getUserId();
-//TODO: НУ КАК ЭТО ДЕЛАТЬ!?
-                ResultSet rs = stmt.executeQuery(sql);
-                Optional<ResultSet> optional = Optional.of(rs);
-
-                if (optional.isPresent()) {
-
-                    InfoResultMessage infoResultMessage = new InfoResultMessage();
-                    infoResultMessage.setLogin(optional.get().getString("Login"));
-                    infoResultMessage.setUserId(optional.get().getLong("Id"));
-                    infoResultMessage.setSenderId(session.getUser().getId());
-                    session.send(infoResultMessage);
-                } else {
-                    ErrorMessage errorMessage = new ErrorMessage();
-                    session.send(errorMessage);
+                // почему то кидает ошибку
+                MessageOperations messageOperations = new MessageOperations();
+                List<Long> chats = messageOperations.getChatsByUserId(session.getUser().getId());
+                ChatListResultMessage chatListResultMessage = new ChatListResultMessage();
+                chatListResultMessage.setType(Type.MSG_CHAT_LIST_RESULT);
+                chatListResultMessage.setSenderId(session.getUser().getId());
+                for (int i = 0; i < chats.size(); i++) {
+                    chatListResultMessage.addChat(chats.get(i));
                 }
-                stmt.close();
-
+                session.send(chatListResultMessage);
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();
+                errorMessage.setType(Type.MSG_ERROR);
                 session.send(errorMessage);
             }
+
         } catch (Exception e) {
-            throw new CommandException("InfoCommand " + e);
+            throw new CommandException("ChatListCommand " + e);
         }
     }
-    }
-
 }
+
+

@@ -20,11 +20,11 @@ public class BdHelper {
                 "trackuser", "trackuser");
 
         Statement stmt = connection.createStatement();
-        String sql = "INSERT INTO \"user\" (ID,login,password) VALUES (1, 'Paul', 'Calia');";
+        String sql = "INSERT INTO Users (ID,login,password) VALUES (1, 'Paul', 'Calia');";
         stmt.executeUpdate(sql);
         stmt.close();
         stmt = connection.createStatement();
-        ResultSet rs = stmt.executeQuery("SELECT * FROM \"user\";");
+        ResultSet rs = stmt.executeQuery("SELECT * FROM Users;");
         while (rs.next()) {
             int id = rs.getInt("id");
             String name = rs.getString("login");

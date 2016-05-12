@@ -6,7 +6,11 @@ import arhangel.dim.core.messages.*;
 import arhangel.dim.core.net.Protocol;
 import arhangel.dim.core.net.ProtocolException;
 import arhangel.dim.core.net.Session;
+import arhangel.dim.core.store.MessageOperations;
+import arhangel.dim.core.store.UserOperations;
+import arhangel.dim.core.store.UserStore;
 import arhangel.dim.lections.socket.IoUtil;
+import com.sun.istack.internal.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,6 +25,7 @@ import java.nio.channels.ServerSocketChannel;
 import java.util.Arrays;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.UnaryOperator;
 
 /**
  * Основной класс для сервера сообщений
@@ -35,71 +40,53 @@ public class Server {
     private Protocol protocol;
     private int maxConnection = DEFAULT_MAX_CONNECT;
     private ServerSocket serverSocket;
+    //Зачем это?
+    private UserOperations userStore;
+    private MessageOperations messageStore;
 
     public Protocol getProtocol() {
+
         return protocol;
     }
 
-    public void stop() {
-        // TODO: закрыть все сетевые подключения, остановить потоки-обработчики, закрыть ресурсы, если есть.
+    public void stop(ExecutorService pool) {
+
+        pool.shutdown();
     }
-    /*
-    public ServerSocketChannel serverSocket() throws IOException {
-
-        // Это серверный сокет
-        ServerSocketChannel socketChannel = ServerSocketChannel.open();
-
-        // Привязали его к порту
-        socketChannel.socket().bind(new InetSocketAddress(port));
-
-        // Должен быть неблокирующий для работы через selector
-        socketChannel.configureBlocking(false);
-
-        // Нас интересует событие коннекта клиента (как и для Socket - ACCEPT)
-        //socketChannel.register(selector, SelectionKey.OP_ACCEPT);
-        return socketChannel;
-
-    }
-    */
 
     public static void main(String[] args) {
-        // создали сервер из конфига
-        Server server = null;
+
         try {
             Container context = new Container("server.xml");
-            server = (Server) context.getByName("server");
-            ServerSocket serverSocket = null;
+            final Server server = (Server) context.getByName("server");
             server.serverSocket = new ServerSocket(server.port);
             log.info("Started, waiting for connection");
             // заставляем сервер ждать подключений и выводим сообщение когда
             // кто-то связался с сервером
             ExecutorService pool = Executors.newFixedThreadPool(DEFAULT_MAX_CONNECT);
-            log.info("Started, waiting for connection");
-            // заставляем сервер ждать подключений и выводим сообщение когда
-            // кто-то связался с сервером
-            while (true) {
-                final Server finalServer = server;
-                pool.submit(new Runnable() {
-                    @Override
-                    public void run() {
+            while (!Thread.currentThread().isInterrupted()) {
+                // Блокируется до возникновения нового соединения:
+                try {
+                    Socket socket = server.serverSocket.accept();
+                    pool.submit(() -> {
                         try {
-                            Socket socket = serverSocket.accept();
                             log.info("Accepted. " + socket.getInetAddress());
-                            Session session = new Session(socket, finalServer);
+                            Session session = new Session(socket, server);
                             session.expectMessage();
-
 
                         } catch (IOException e) {
                             e.printStackTrace();
-                            log.error("Failed to creating socket in server: {}", e);
+                            log.error("Failed to creating session: ", e);
                         }
-
-                    }
-                });
+                    });
+                } catch (NullPointerException e) {
+                    log.error("Failed to create socket: ", e);
+                }
 
 
             }
 
+            server.stop(pool);
 
         } catch (IOException e) {
             e.printStackTrace();

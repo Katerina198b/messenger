@@ -1,7 +1,5 @@
 package arhangel.dim.core;
 
-import arhangel.dim.core.messages.Message;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,34 +10,49 @@ public class Chat {
     private Long id;
     private User admin;
     private List<Long> participants = new ArrayList<>();
-    private List<Long> messages  = new ArrayList<>();
+    private List<Long> messages = new ArrayList<>();
 
-    private void setId(Long id) {
+    public void setId(Long id) {
+
         this.id = id;
     }
 
-    private Long getId() {
+    public Long getId() {
+
         return id;
     }
 
-    private void setAdmin(User admin) {
+    public void setAdmin(User admin) {
+
         this.admin = admin;
     }
 
-    private User getAdmin() {
+    public User getAdmin() {
+
         return admin;
     }
 
-    private void addMessage(Message message) {
-        messages.add(message.getId());
+    public void addMessage(long message) {
+
+        messages.add(message);
     }
 
-    private void addParticipant(User user) {
-        participants.add(user.getId());
+    public void addParticipant(Long userId) {
+
+        participants.add(userId);
     }
 
-    private  void removeParticipant(User user) {
-        participants.remove(user.getId());
+    public List<Long> getParticipants() {
+        return participants;
+    }
+
+
+    public void removeParticipant(Long userId) {
+        participants.remove(userId);
+    }
+
+    public List<Long> getMessages() {
+        return messages;
     }
 
 }

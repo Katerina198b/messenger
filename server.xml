@@ -1,10 +1,14 @@
 <root>
 
         <bean id="protocol" class="arhangel.dim.core.net.StringProtocol"/>
+    <bean id="user" class="arhangel.dim.core.store.UserOperations"/>
+    <bean id="message" class="arhangel.dim.core.store.MessageOperations"/>
 
         <bean id="server" class="arhangel.dim.server.Server">
             <property name="port" val="19000"/>
-            <property name="protocol" ref="arhangel.dim.core.net.StringProtocol"/>
+            <property name="protocol" ref="protocol"/>
+            <property name="userStore" ref="user"/>
+            <property name="messageStore" ref="message"/>
         </bean>
 
 

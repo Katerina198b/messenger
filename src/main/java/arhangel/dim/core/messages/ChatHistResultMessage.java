@@ -7,21 +7,17 @@ import java.util.Objects;
 public class ChatHistResultMessage extends Message {
 
     private int chatId;
-    private List<String> messages = new ArrayList<String>();
+    private List<TextMessage> messages = new ArrayList<>();
 
     public int getChatId() {
         return chatId;
     }
 
-    public int length() {
-        return messages.size();
-    }
-
-    public String getMessage(int id) {
+    public TextMessage getMessage(int id) {
         return messages.get(id);
     }
 
-    public void setMessage(String message) {
+    public void addMessage(TextMessage message) {
         messages.add(message);
     }
 
@@ -30,7 +26,7 @@ public class ChatHistResultMessage extends Message {
         this.chatId = chatId;
     }
 
-    public List<String> getMessages() {
+    public List<TextMessage> getMessages() {
         return messages;
     }
 
@@ -56,11 +52,10 @@ public class ChatHistResultMessage extends Message {
 
     @Override
     public String toString() {
-        return "ChatHistResultMessage{" +
-                "chat id=" +
-                chatId +
-                "messages: " +
-                messages +
-                '}';
+        StringBuilder stringBuilder = new StringBuilder("ChatHistResultMessage{ chat id=" + chatId + "messages: ");
+        for (int i = 0; i < messages.size(); i++) {
+            stringBuilder.append(messages.get(i).toString()).append("\n");
+        }
+        return stringBuilder.toString();
     }
 }

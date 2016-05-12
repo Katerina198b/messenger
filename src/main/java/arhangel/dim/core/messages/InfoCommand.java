@@ -1,11 +1,15 @@
-/* получить всю информацию о пользователе,
+package arhangel.dim.core.messages;
+
+/**
+ * получить всю информацию о пользователе,
  * без аргументов - о себе (только для залогиненных пользователей)
  */
 
-package arhangel.dim.core.messages;
-
 import arhangel.dim.core.User;
 import arhangel.dim.core.net.Session;
+import arhangel.dim.core.store.UserOperations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -14,49 +18,38 @@ import java.sql.Statement;
 import java.util.Optional;
 
 public class InfoCommand implements Command {
+
+    private Logger log = LoggerFactory.getLogger(InfoCommand.class);
+
     @Override
     public void execute(Session session, Message message) throws CommandException {
-        InfoMessage msg = (InfoMessage) message;
-        Optional<User> optionalUser = Optional.of(session.getUser());
+        InfoMessage infoMessage = (InfoMessage) message;
+        Optional<User> optionalUser = Optional.ofNullable(session.getUser());
         try {
             if (optionalUser.isPresent()) {
-
-                if (msg.getUserId() == -1) {
-                    msg.setUserId(optionalUser.get().getId().toString());
-                }
-
-                Class.forName("org.postgresql.Driver");
-
-                Connection connection = DriverManager.getConnection("jdbc:postgresql://178.62.140.149:5432/Katerina198b",
-                        "trackuser", "trackuser");
-
-                Statement stmt;
-                stmt = connection.createStatement();
-                String sql;
-                sql = "SELECT * FROM User" +
-                        "WHERE id=" + msg.getUserId();
-
-                ResultSet rs = stmt.executeQuery(sql);
-                Optional<ResultSet> optional = Optional.of(rs);
-
-                if (optional.isPresent()) {
-
-                    InfoResultMessage infoResultMessage = new InfoResultMessage();
-                    infoResultMessage.setLogin(optional.get().getString("Login"));
-                    infoResultMessage.setUserId(optional.get().getLong("Id"));
-                    infoResultMessage.setSenderId(session.getUser().getId());
-                    session.send(infoResultMessage);
+                UserOperations userOperations = new UserOperations();
+                User user = null;
+                if (infoMessage.getUserId() == -1) {
+                    user = userOperations.getUserById(session.getUser().getId());
                 } else {
-                    ErrorMessage errorMessage = new ErrorMessage();
-                    session.send(errorMessage);
+                    user = userOperations.getUserById(infoMessage.getUserId());
                 }
-                stmt.close();
 
+                InfoResultMessage infoResultMessage = new InfoResultMessage();
+                infoResultMessage.setType(Type.MSG_INFO_RESULT);
+                infoResultMessage.setSenderId(session.getUser().getId());
+                infoResultMessage.setUserId(user.getId());
+                infoResultMessage.setLogin(user.getName());
+                session.send(infoResultMessage);
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();
+                errorMessage.setType(Type.MSG_ERROR);
+                errorMessage.setText("Sorry, this action is available only for registered users");
                 session.send(errorMessage);
             }
+
         } catch (Exception e) {
+            log.error("", e);
             throw new CommandException("InfoCommand " + e);
         }
     }

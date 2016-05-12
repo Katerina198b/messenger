@@ -6,20 +6,34 @@ package arhangel.dim.core.messages;
 import java.util.Objects;
 
 public class InfoMessage extends Message {
-    private int userId;
+    private long userId;
+    private String login;
 
     public void setUserId(String userId) {
-        this.userId = Integer.valueOf(userId);
+        this.userId = Long.valueOf(userId);
     }
 
-    public int getUserId() {
+    public void setUserId(long userId) {
+        this.userId = userId;
+    }
+
+    public long getUserId() {
         return userId;
+    }
+
+    public void setLogin(String login) {
+        this.login = login;
+    }
+
+    public String getLogin() {
+        return login;
     }
 
     @Override
     public String toString() {
         return "InfoMessage{" +
                 "userId='" + userId + '\'' +
+                "login='" + login +
                 '}';
     }
 
@@ -33,7 +47,7 @@ public class InfoMessage extends Message {
             return false;
         }
         InfoMessage message = (InfoMessage) other;
-        return Objects.equals(userId, message.userId);
+        return Objects.equals(userId, message.userId) && Objects.equals(login, message.login);
     }
 
     @Override

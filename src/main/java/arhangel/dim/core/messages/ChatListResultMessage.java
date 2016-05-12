@@ -1,26 +1,35 @@
 package arhangel.dim.core.messages;
 
+/**
+ * получить список чатов пользователя(только для залогиненных пользователей).
+ * От сервера приходит список id чатов
+ */
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class ChatListResultMessage extends Message {
-    // получить список чатов пользователя(только для залогиненных пользователей).
-    // От сервера приходит список id чатов
 
-    private List<Integer> chats = new ArrayList<Integer>();
+    private List<Long> chats = new ArrayList<>();
+
 
     public int length() {
         return chats.size();
     }
 
-    public Integer getChat(int id) {
+    public Long getChat(int id) {
         return chats.get(id);
     }
 
-    public void setChat(String id) {
-        chats.add(Integer.valueOf(id));
+    public void addChat(String chat) {
+        chats.add(Long.valueOf(chat));
     }
+
+    public void addChat(long chat) {
+        chats.add(chat);
+    }
+
 
     @Override
     public boolean equals(Object other) {

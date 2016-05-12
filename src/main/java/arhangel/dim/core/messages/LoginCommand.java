@@ -1,8 +1,17 @@
 package arhangel.dim.core.messages;
 
+/**
+ * залогиниться (если логин не указан, то авторизоваться).
+ * В случае успеха приходит вся инфа о пользователе
+ */
+
 import arhangel.dim.core.User;
 import arhangel.dim.core.net.Session;
+import arhangel.dim.core.store.UserOperations;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -12,42 +21,52 @@ import java.util.Optional;
 
 public class LoginCommand implements Command {
 
+    private Logger log = LoggerFactory.getLogger(LoginCommand.class);
+
     @Override
     public void execute(Session session, Message message) throws CommandException {
-        LoginMessage msg = (LoginMessage) message;
+        Optional<User> optionalUser = Optional.ofNullable(session.getUser());
         try {
-            Class.forName("org.postgresql.Driver");
+            if (!optionalUser.isPresent()) {
+                LoginMessage loginMessage = (LoginMessage) message;
+                UserOperations userOperations = new UserOperations();
+                User user = userOperations.getUser(loginMessage.getLogin(), loginMessage.getPassword());
+                if (Optional.ofNullable(user).isPresent()) {
+                    log.info("authorization..");
+                    session.setUser(user);
+                    InfoMessage infoMessage = new InfoMessage();
+                    infoMessage.setSenderId(session.getUser().getId());
+                    infoMessage.setUserId(session.getUser().getId());
+                    infoMessage.setLogin(user.getName());
+                    session.send(infoMessage);
 
-            Connection connection = DriverManager.getConnection("jdbc:postgresql://178.62.140.149:5432/Katerina198b",
-                    "trackuser", "trackuser");
-
-            Statement stmt;
-            stmt = connection.createStatement();
-            String sql;
-            sql = "SELECT * FROM User" +
-                    "WHERE login=" + msg.getLogin() + "," +
-                    "password=" + msg.getPassword();
-
-            ResultSet rs = stmt.executeQuery(sql);
-            Optional<ResultSet> optional = Optional.of(rs);
-
-            if (optional.isPresent()) {
-
-                User user = new User(msg.getId(), msg.getLogin());
-                session.setUser(user);
-                StatusMessage statusMessage = new StatusMessage();
-                statusMessage.setSenderId(session.getUser().getId());
-                statusMessage.setStatus(Status.ACCEPTED);
-                session.send(statusMessage);
+                } else {
+                    if (userOperations.userIsPresentByLogin(loginMessage.getLogin())) {
+                        ErrorMessage errorMessage = new ErrorMessage();
+                        errorMessage.setType(Type.MSG_ERROR);
+                        errorMessage.setSenderId(session.getUser().getId());
+                        errorMessage.setText("Sorry, but password is incorrect or login is already used");
+                        session.send(errorMessage);
+                    } else {
+                        log.info("Creating new user..");
+                        User newUser = userOperations.addUser(loginMessage.getLogin(), loginMessage.getPassword());
+                        InfoMessage infoMessage = new InfoMessage();
+                        infoMessage.setType(Type.MSG_INFO);
+                        infoMessage.setSenderId(newUser.getId());
+                        infoMessage.setLogin(newUser.getName());
+                        infoMessage.setUserId(newUser.getId());
+                        session.send(infoMessage);
+                    }
+                }
             } else {
-                StatusMessage statusMessage = new StatusMessage();
-                statusMessage.setSenderId(session.getUser().getId());
-                statusMessage.setStatus(Status.NOT_ACCEPTED);
-                session.send(statusMessage);
+                ErrorMessage errorMessage = new ErrorMessage();
+                errorMessage.setType(Type.MSG_ERROR);
+                errorMessage.setSenderId(session.getUser().getId());
+                errorMessage.setText("Sorry, but you are login now. For logout enter \"q\" ");
+                session.send(errorMessage);
             }
-            stmt.close();
         } catch (Exception e) {
-            throw new CommandException("LoginCommand " + e);
+            e.printStackTrace();
         }
     }
 }

@@ -1,5 +1,12 @@
 package arhangel.dim.core.messages;
 
+/**
+ * создать новый чат, список пользователей приглашенных в чат
+ * (только для залогиненных пользователей).
+ * /chat_create 3 - создать чат с пользователем id=3,
+ * если такой чат уже существует, вернуть существующий
+ */
+
 import com.sun.org.apache.xerces.internal.impl.dv.xs.IntegerDV;
 
 import java.util.ArrayList;
@@ -7,11 +14,11 @@ import java.util.List;
 import java.util.Objects;
 
 public class ChatCreateMessage extends Message {
-    private int chat;
-    private List<Integer> ids = new ArrayList<>();
+    private long chat;
+    private List<Long> ids = new ArrayList<>();
 
 
-    public List<Integer> getIds() {
+    public List<Long> getIds() {
         return ids;
     }
 
@@ -21,11 +28,10 @@ public class ChatCreateMessage extends Message {
 
 
     public void addId(String id) {
-        Integer intId = new Integer(id);
-        ids.add(intId);
+        ids.add(Long.valueOf(id));
     }
 
-    public int getId(int id) {
+    public long getId(int id) {
         return ids.get(id);
     }
 

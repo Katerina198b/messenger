@@ -25,9 +25,6 @@ import arhangel.dim.core.net.ProtocolException;
  */
 public class Client implements ConnectionHandler {
 
-    /**
-     * Механизм логирования позволяет более гибко управлять записью данных в лог (консоль, файл и тд)
-     */
     static Logger log = LoggerFactory.getLogger(Client.class);
 
     /**
@@ -47,6 +44,18 @@ public class Client implements ConnectionHandler {
      */
     private InputStream in;
     private OutputStream out;
+
+    private long senderId;
+
+    public void setSenderId(long senderId) {
+
+        this.senderId = senderId;
+    }
+
+    public long getSenderId() {
+
+        return senderId;
+    }
 
     public Protocol getProtocol() {
 
@@ -78,14 +87,17 @@ public class Client implements ConnectionHandler {
         this.host = host;
     }
 
+    /**
+     * Инициализируем сокет и слушаем входной поток от сервера
+     *
+     * @throws IOException
+     */
     public void initSocket() throws IOException {
+
         Socket socket = new Socket(host, port);
         in = socket.getInputStream();
         out = socket.getOutputStream();
 
-        /**
-         * Инициализируем поток-слушатель. Синтаксис лямбды скрывает создание анонимного класса Runnable
-         */
         socketThread = new Thread(() -> {
             final byte[] buf = new byte[1024 * 64];
             log.info("Starting listener thread...");
@@ -94,19 +106,16 @@ public class Client implements ConnectionHandler {
              */
             while (!Thread.currentThread().isInterrupted()) {
                 try {
-                    // Здесь поток блокируется на ожидании данных
-
                     //if (in.available() > 0)
                     int read = in.read(buf);
                     if (read > 0) {
-
-                        // По сети передается поток байт, его нужно раскодировать с помощью протокола
                         Message msg = protocol.decode(Arrays.copyOf(buf, read));
                         onMessage(msg);
                     }
                 } catch (SocketException e) {
                     return;
                 } catch (IOException | ProtocolException e) {
+                    log.error("Failed into initSocket");
                     e.printStackTrace();
                 }
             }
@@ -120,36 +129,43 @@ public class Client implements ConnectionHandler {
      */
     @Override
     public void onMessage(Message msg) {
-        log.info("Message received: {}", msg);
-        msg.toString();
+
+        System.out.println(msg.toString());
+        System.out.println("$");
 
     }
 
     /**
      * Обрабатывает входящую строку, полученную с консоли
      * Формат строки можно посмотреть в вики проекта
+     *
+     * @throws IOException, ProtocolException
      */
     public void processInput(String line) throws IOException, ProtocolException {
+
         String[] tokens = line.split(" ");
-        log.info("Tokens: {}", Arrays.toString(tokens));
+        log.info("processInput: Tokens: {}", Arrays.toString(tokens));
         String cmdType = tokens[0];
         switch (cmdType) {
 
             case "/login":
                 if (tokens.length == 3) {
                     LoginMessage loginMessage = new LoginMessage();
+                    loginMessage.setSenderId(this.getSenderId());
                     loginMessage.setType(Type.MSG_LOGIN);
                     loginMessage.setLogin(tokens[1]);
                     loginMessage.setPassword(tokens[2]);
                     send(loginMessage);
                 } else {
-                    log.error("incorrect input: you enter {} words, but had 3 words", tokens.length);
+                    System.out.println(String.format("processInput: incorrect input: " +
+                            "you enter {} words, but had 3 words", tokens.length));
                 }
                 break;
 
             case "/help":
                 HelpMessage helpMessage = new HelpMessage();
                 helpMessage.setType(Type.MSG_INFO);
+                helpMessage.setSenderId(this.getSenderId());
                 send(helpMessage);
                 break;
 
@@ -157,34 +173,39 @@ public class Client implements ConnectionHandler {
                 if (tokens.length == 3) {
                     TextMessage textMessage = new TextMessage();
                     textMessage.setType(Type.MSG_TEXT);
+                    textMessage.setSenderId(this.getSenderId());
                     textMessage.setChatId(tokens[1]);
                     textMessage.setText(tokens[2]);
                     send(textMessage);
                 } else {
-                    log.error("incorrect input: you enter {} words, but had 3 words", tokens.length);
+                    log.error(String.format("processInput: incorrect input: you enter %s words," +
+                            " but had 3 words", tokens.length));
                 }
                 break;
 
             case "/info":
                 switch (tokens.length) {
+
                     case 1:
                         InfoMessage infoMessage = new InfoMessage();
                         // число -1 будет обозначать запрос о себе
-                        Integer userId = -1;
                         infoMessage.setType(Type.MSG_INFO);
-                        infoMessage.setUserId(userId.toString());
+                        infoMessage.setSenderId(this.getSenderId());
+                        infoMessage.setUserId(Long.valueOf(-1));
                         send(infoMessage);
                         break;
+
                     case 2:
                         InfoMessage message = new InfoMessage();
-                        Integer id = Integer.valueOf(tokens[1]);
                         message.setType(Type.MSG_INFO);
-                        message.setUserId(id.toString());
+                        message.setSenderId(this.getSenderId());
+                        message.setUserId(tokens[1]);
                         send(message);
                         break;
+
                     default:
-                        log.error("incorrect input: you enter {} " +
-                                "words, but had 3 or 2 words", tokens.length);
+                        log.error(String.format("processInput: incorrect input: you enter %s " +
+                                "words, but had 3 or 2 words", tokens.length));
                 }
                 break;
 
@@ -192,15 +213,18 @@ public class Client implements ConnectionHandler {
                 if (tokens.length == 1) {
                     ChatListMessage chatListMessage = new ChatListMessage();
                     chatListMessage.setType(Type.MSG_CHAT_LIST);
+                    chatListMessage.setSenderId(this.getSenderId());
                     send(chatListMessage);
                 } else {
-                    log.error("incorrect input: you enter {} words, but had 1 word", tokens.length);
+                    log.error(String.format("processInput: incorrect input: you enter %s words," +
+                            " but had 1 word", tokens.length));
                 }
                 break;
 
             case "/chat_create":
                 ChatCreateMessage chatCreateMessage = new ChatCreateMessage();
                 chatCreateMessage.setType(Type.MSG_CHAT_CREATE);
+                chatCreateMessage.setSenderId(this.getSenderId());
                 for (int i = 1; i < tokens.length + 1; i++) {
                     chatCreateMessage.addId(tokens[i]);
                 }
@@ -211,14 +235,16 @@ public class Client implements ConnectionHandler {
                 if (tokens.length == 2) {
                     ChatHistMessage chatHistMessage = new ChatHistMessage();
                     chatHistMessage.setType(Type.MSG_CHAT_HIST);
+                    chatHistMessage.setSenderId(this.getSenderId());
                     chatHistMessage.setChatId(tokens[1]);
                 } else {
-                    log.error("incorrect input: you enter {} words, but had 2 words", tokens.length);
+                    log.error("processInput: incorrect input: you enter {} words, " +
+                            "but had 2 words", tokens.length);
                 }
                 break;
 
             default:
-                log.error("Invalid input: " + line);
+                log.error("processInput : Invalid input. ", line);
         }
     }
 
@@ -227,8 +253,9 @@ public class Client implements ConnectionHandler {
      */
     @Override
     public void send(Message msg) throws IOException, ProtocolException {
-        log.info(msg.toString());
+
         out.write(protocol.encode(msg));
+        log.info("send: message sent {}", msg.toString());
         // flush очищает любые выходные буферы, завершая операцию вывода.
         out.flush();
     }
@@ -239,7 +266,7 @@ public class Client implements ConnectionHandler {
      */
     @Override
     public void close() {
-        // TODO: написать реализацию. Закройте ресурсы и остановите поток-слушатель
+
         socketThread.interrupt();
         try {
             in.close();
@@ -247,6 +274,7 @@ public class Client implements ConnectionHandler {
         } catch (SocketException e) {
             return;
         } catch (IOException e) {
+            log.error("Failed into close.");
             e.printStackTrace();
         }
     }
@@ -254,23 +282,13 @@ public class Client implements ConnectionHandler {
     public static void main(String[] args) throws Exception {
 
         Client client = null;
-        // Пользуемся механизмом контейнера
         try {
+
             Container context = new Container("client.xml");
             client = (Client) context.getByName("client");
-        } catch (InvalidConfigurationException e) {
-            log.error("Failed to create client", e);
-            return;
-        }
-        try {
+
             client.initSocket();
 
-            // Цикл чтения с консоли
-            /*
-             * В классе есть методы для чтения очередного символа заданного
-             * типа со стандартного потока ввода, а также для проверки
-             * существования такого символа.
-             */
             Scanner scanner = new Scanner(System.in);
             System.out.println("$");
             while (true) {
@@ -281,11 +299,13 @@ public class Client implements ConnectionHandler {
                 try {
                     client.processInput(input);
                 } catch (ProtocolException | IOException e) {
-                    log.error("Failed to process user input", e);
+                    log.error("Client: main: Failed to process user input.", e);
                 }
             }
+        } catch (InvalidConfigurationException e) {
+            log.error("Client: main: Failed to create client.", e);
         } catch (Exception e) {
-            log.error("Application failed.", e);
+            log.error("Client: main: Application failed.", e);
         } finally {
             if (client != null) {
                 client.close();

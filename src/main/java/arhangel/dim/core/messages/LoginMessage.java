@@ -1,10 +1,16 @@
 package arhangel.dim.core.messages;
 
+/**
+ * залогиниться (если логин не указан, то авторизоваться).
+ * В случае успеха приходит вся инфа о пользователе
+ *
+ */
+
 import java.util.Objects;
 
 public class LoginMessage extends Message {
     private String login;
-    private int password;
+    private String password;
 
     public void setLogin(String login) {
         this.login = login;
@@ -15,18 +21,17 @@ public class LoginMessage extends Message {
     }
 
     public void setPassword(String password) {
-        this.password = password.hashCode();
+        this.password = password;
     }
 
-    public int getPassword() {
+    public String getPassword() {
         return password;
     }
 
     @Override
     public String toString() {
         return "LoginMessage{" +
-                "login='" + login +
-                '}';
+                "login=" + login + '}';
     }
 
     @Override
@@ -39,8 +44,8 @@ public class LoginMessage extends Message {
             return false;
         }
         LoginMessage message = (LoginMessage) other;
-        return Objects.equals(login, message.login)
-                && Objects.equals(password, message.password);
+        return Objects.equals(login, message.login) &&
+                 Objects.equals(password, message.password);
     }
 
     @Override
