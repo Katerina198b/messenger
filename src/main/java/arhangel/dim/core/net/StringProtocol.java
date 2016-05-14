@@ -3,13 +3,9 @@ package arhangel.dim.core.net;
 /**
  * Простейший протокол передачи данных
  */
-
-import arhangel.dim.core.Chat;
 import arhangel.dim.core.messages.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -108,13 +104,16 @@ public class StringProtocol implements Protocol {
                 InfoResultMessage infoResultMessage = new InfoResultMessage();
                 infoResultMessage.setType(type);
                 infoResultMessage.setSenderId(tokens[1]);
-                infoResultMessage.setLogin(tokens[2]);
+                infoResultMessage.setUserId(tokens[2]);
+                infoResultMessage.setLogin(tokens[3]);
+                infoResultMessage.setNewSession(Boolean.valueOf(tokens[4]));
                 return infoResultMessage;
 
             case MSG_ERROR:
                 ErrorMessage errorMessage = new ErrorMessage();
                 errorMessage.setType(type);
                 errorMessage.setSenderId(tokens[1]);
+                errorMessage.setText(tokens[2]);
                 return errorMessage;
 
             default:
@@ -130,7 +129,7 @@ public class StringProtocol implements Protocol {
         Type type = msg.getType();
 
         builder.append(type).append(DELIMITER)
-                .append(Optional.ofNullable(msg.getSenderId()).orElse(Long.valueOf(0)))
+                .append(Optional.ofNullable(msg.getSenderId()).orElse(0L))
                 .append(DELIMITER);
         switch (type) {
 
@@ -143,7 +142,7 @@ public class StringProtocol implements Protocol {
             case MSG_LOGIN:
                 LoginMessage loginMessage = (LoginMessage) msg;
                 builder.append(loginMessage.getLogin()).append(DELIMITER);
-                builder.append(loginMessage.getPassword());
+                builder.append(loginMessage.getPassword()).append(DELIMITER);
                 break;
 
             case MSG_CHAT_CREATE:
@@ -168,7 +167,9 @@ public class StringProtocol implements Protocol {
 
             case MSG_INFO_RESULT:
                 InfoResultMessage infoResultMessage = (InfoResultMessage) msg;
-                builder.append(infoResultMessage.getUserId());
+                builder.append(infoResultMessage.getUserId()).append(DELIMITER);
+                builder.append(infoResultMessage.getLogin()).append(DELIMITER);
+                builder.append(infoResultMessage.getNewSession()).append(DELIMITER);
                 break;
 
             case MSG_CHAT_HIST:
@@ -203,6 +204,8 @@ public class StringProtocol implements Protocol {
                 break;
 
             case MSG_ERROR:
+                ErrorMessage errorMessage = (ErrorMessage) msg;
+                builder.append(errorMessage.getText());
                 break;
 
             default:

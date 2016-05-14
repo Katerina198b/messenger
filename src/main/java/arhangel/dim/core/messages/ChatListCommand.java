@@ -34,7 +34,7 @@ public class ChatListCommand implements Command {
         try {
             if (optionalUser.isPresent()) {
                 // почему то кидает ошибку
-                MessageOperations messageOperations = new MessageOperations();
+                MessageOperations messageOperations = new MessageOperations(session.getConnection());
                 List<Long> chats = messageOperations.getChatsByUserId(session.getUser().getId());
                 ChatListResultMessage chatListResultMessage = new ChatListResultMessage();
                 chatListResultMessage.setType(Type.MSG_CHAT_LIST_RESULT);
@@ -46,6 +46,7 @@ public class ChatListCommand implements Command {
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();
                 errorMessage.setType(Type.MSG_ERROR);
+                errorMessage.setText("Sorry, this action is available only for registered users");
                 session.send(errorMessage);
             }
 

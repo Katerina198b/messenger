@@ -6,6 +6,7 @@ public class InfoResultMessage extends Message{
 
     private long userId;
     private String login;
+    private boolean newSession;
 
     public void setUserId(String userId) {
         this.userId = Long.valueOf(userId);
@@ -13,6 +14,14 @@ public class InfoResultMessage extends Message{
 
     public void setUserId(Long userId) {
         this.userId = userId;
+    }
+
+    public void setNewSession(boolean newSession) {
+        this.newSession = newSession;
+    }
+
+    public boolean getNewSession() {
+        return newSession;
     }
 
     public void setLogin(String login) {
@@ -30,7 +39,7 @@ public class InfoResultMessage extends Message{
 
     @Override
     public String toString() {
-        return "InfoMessage{" +
+        return "InfoResultMessage{" +
                 "userId= '" + userId + '\'' +
                 "login= '" + login + '\'' +
                 '}';

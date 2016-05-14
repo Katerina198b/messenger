@@ -7,6 +7,8 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.SocketException;
 import java.util.Arrays;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.Scanner;
 
 import arhangel.dim.core.messages.*;
@@ -48,49 +50,39 @@ public class Client implements ConnectionHandler {
     private long senderId;
 
     public void setSenderId(long senderId) {
-
         this.senderId = senderId;
     }
 
     public long getSenderId() {
-
         return senderId;
     }
 
     public Protocol getProtocol() {
-
         return protocol;
     }
 
     public void setProtocol(Protocol protocol) {
-
         this.protocol = protocol;
     }
 
     public int getPort() {
-
         return port;
     }
 
     public void setPort(int port) {
-
         this.port = port;
     }
 
     public String getHost() {
-
         return host;
     }
 
     public void setHost(String host) {
-
         this.host = host;
     }
 
     /**
      * Инициализируем сокет и слушаем входной поток от сервера
-     *
-     * @throws IOException
      */
     public void initSocket() throws IOException {
 
@@ -130,8 +122,25 @@ public class Client implements ConnectionHandler {
     @Override
     public void onMessage(Message msg) {
 
+        if (msg.getType() == Type.MSG_INFO_RESULT) {
+            InfoResultMessage infoResultMessage = (InfoResultMessage) msg;
+            if (infoResultMessage.getNewSession()) {
+                this.setSenderId(infoResultMessage.getUserId());
+                System.out.println("Login is successful");
+            }
+        }
         System.out.println(msg.toString());
         System.out.println("$");
+
+    }
+
+    public void invalidInput() {
+
+        ErrorMessage errorMessage = new ErrorMessage();
+        errorMessage.setType(Type.MSG_ERROR);
+        errorMessage.setText("Invalid input. For more information please enter \"/help\"");
+        log.error("processInput : Invalid input");
+        this.onMessage(errorMessage);
 
     }
 
@@ -157,16 +166,18 @@ public class Client implements ConnectionHandler {
                     loginMessage.setPassword(tokens[2]);
                     send(loginMessage);
                 } else {
-                    System.out.println(String.format("processInput: incorrect input: " +
-                            "you enter {} words, but had 3 words", tokens.length));
+                    this.invalidInput();
                 }
                 break;
 
+            /**
+             * Cообщение, которое не отправляется серверу
+             */
             case "/help":
                 HelpMessage helpMessage = new HelpMessage();
                 helpMessage.setType(Type.MSG_INFO);
                 helpMessage.setSenderId(this.getSenderId());
-                send(helpMessage);
+                this.onMessage(helpMessage);
                 break;
 
             case "/text":
@@ -178,8 +189,7 @@ public class Client implements ConnectionHandler {
                     textMessage.setText(tokens[2]);
                     send(textMessage);
                 } else {
-                    log.error(String.format("processInput: incorrect input: you enter %s words," +
-                            " but had 3 words", tokens.length));
+                    this.invalidInput();
                 }
                 break;
 
@@ -191,7 +201,7 @@ public class Client implements ConnectionHandler {
                         // число -1 будет обозначать запрос о себе
                         infoMessage.setType(Type.MSG_INFO);
                         infoMessage.setSenderId(this.getSenderId());
-                        infoMessage.setUserId(Long.valueOf(-1));
+                        infoMessage.setUserId(-1L);
                         send(infoMessage);
                         break;
 
@@ -204,8 +214,7 @@ public class Client implements ConnectionHandler {
                         break;
 
                     default:
-                        log.error(String.format("processInput: incorrect input: you enter %s " +
-                                "words, but had 3 or 2 words", tokens.length));
+                        this.invalidInput();
                 }
                 break;
 
@@ -216,8 +225,7 @@ public class Client implements ConnectionHandler {
                     chatListMessage.setSenderId(this.getSenderId());
                     send(chatListMessage);
                 } else {
-                    log.error(String.format("processInput: incorrect input: you enter %s words," +
-                            " but had 1 word", tokens.length));
+                    this.invalidInput();
                 }
                 break;
 
@@ -238,13 +246,12 @@ public class Client implements ConnectionHandler {
                     chatHistMessage.setSenderId(this.getSenderId());
                     chatHistMessage.setChatId(tokens[1]);
                 } else {
-                    log.error("processInput: incorrect input: you enter {} words, " +
-                            "but had 2 words", tokens.length);
+                    this.invalidInput();
                 }
                 break;
 
             default:
-                log.error("processInput : Invalid input. ", line);
+                this.invalidInput();
         }
     }
 
@@ -277,6 +284,20 @@ public class Client implements ConnectionHandler {
             log.error("Failed into close.");
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public boolean equals(Object other) {
+        if (this == other) {
+            return true;
+        }
+        if (other == null || getClass() != other.getClass()) {
+            return false;
+        }
+        Client client = (Client) other;
+        return Objects.equals(port, client.port) &&
+                Objects.equals(protocol, client.protocol) &&
+                Objects.equals(host, client.host);
     }
 
     public static void main(String[] args) throws Exception {

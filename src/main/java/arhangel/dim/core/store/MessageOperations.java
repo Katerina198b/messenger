@@ -4,85 +4,45 @@ import arhangel.dim.core.Chat;
 import arhangel.dim.core.User;
 import arhangel.dim.core.messages.Message;
 import arhangel.dim.core.messages.TextMessage;
+import arhangel.dim.core.messages.Type;
+import com.sun.istack.internal.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+import java.util.jar.Pack200;
 
 public class MessageOperations implements MessageStore {
 
     private Connection connection;
     private Logger log = LoggerFactory.getLogger(MessageOperations.class);
 
-    public MessageOperations() throws Exception {
-        Class.forName("org.postgresql.Driver");
-        this.connection = DriverManager.getConnection("jdbc:postgresql://178.62.140.149:5432/Katerina198b",
-                "trackuser", "trackuser");
+    public MessageOperations(Connection connection) throws Exception {
+
+        this.connection = connection;
 
     }
 
     @Override
     public List<Long> getChatsByUserId(Long userId) {
-        String sql = "SELECT chat_id FROM CHAT_USER WHERE user_id = " + userId + ";";
+
+        boolean empty = true;
+
         List<Long> chatList = new ArrayList<>();
         try {
-            Statement statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery(sql);
-            statement.close();
+            PreparedStatement statement = connection
+                    .prepareStatement("SELECT chat_id FROM CH_USER WHERE user_id = ?;");
+            statement.setLong(1, userId);
+            ResultSet rs = statement.executeQuery();
+
             while (rs.next()) {
+                empty = false;
                 Long chatId = rs.getLong("chat_id");
                 chatList.add(chatId);
-                return chatList;
-            }
-        } catch (SQLException e) {
-            log.error("Caught SQLException in getChatsByUserId");
-            e.printStackTrace();
-        }
-        return null;
-    }
-
-    @Override
-    public Chat getChatById(Long chatId) {
-
-        User admin = new User();
-        Chat chat = new Chat();
-
-        String sql = "SELECT * FROM CHAT WHERE id = " + chatId + ";";
-        try {
-            Statement statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery(sql);
-            statement.close();
-            if (rs.next()) {
-                chat.setId(rs.getLong("chat_id"));
-                admin.setId(rs.getLong("owner_id"));
-            }
-
-            sql = "SELECT * FROM Users WHERE id = " + admin.getId() + ";";
-            rs = statement.executeQuery(sql);
-            if (rs.next()) {
-                admin.setName(rs.getString("login"));
-                admin.setPassword("password");
-                chat.setAdmin(admin);
-            }
-
-            sql = "SELECT user_id FROM CH_USER WHERE chat_id=" + chatId + ";";
-            rs = statement.executeQuery(sql);
-            while (rs.next()) {
-                Long userId = rs.getLong("user_id");
-                if (userId != admin.getId()) {
-                    chat.addParticipant(userId);
-                }
-            }
-
-            sql = "SELECT * FROM" +
-                    "(SELECT user_id FROM CH_USER WHERE chat_id = " + chatId + ") as USERS, MESSAGES" +
-                    "WHERE chat_id = " + chatId +
-                    "AND user_id IN USERS.user_id";
-            rs = statement.executeQuery(sql);
-            while (rs.next()) {
-                chat.addMessage(rs.getLong("id"));
             }
             rs.close();
             statement.close();
@@ -91,11 +51,72 @@ public class MessageOperations implements MessageStore {
             log.error("Caught SQLException in getChatsByUserId");
             e.printStackTrace();
         }
+        if (empty) {
+            return null;
+        }
+        return chatList;
+    }
+
+    @Override
+    public Chat getChatById(Long chatId) {
+
+        Chat chat = new Chat();
+
+        try {
+            PreparedStatement statement = connection
+                    .prepareStatement("SELECT * FROM CHAT WHERE chat_id = ?;");
+            statement.setLong(1, chatId);
+            ResultSet rs = statement.executeQuery();
+            if (rs.next()) {
+                chat.setId(rs.getLong("chat_id"));
+                chat.setAdmin(rs.getLong("owner_id"));
+            }
+            rs.close();
+            statement.close();
+
+            statement = connection
+                    .prepareStatement("SELECT user_id FROM CH_USER WHERE chat_id= ?;");
+            statement.setLong(1, chat.getId());
+            rs = statement.executeQuery();
+            while (rs.next()) {
+                Long userId = rs.getLong("user_id");
+                if (userId != chat.getAdmin()) {
+                    chat.addParticipant(userId);
+                }
+            }
+            List<Long> messages = getMessagesFromChat(chatId);
+            chat.setMessages(messages);
+
+        } catch (SQLException e) {
+            log.error("Caught SQLException in getChatsById");
+            e.printStackTrace();
+        }
         return chat;
     }
 
     @Override
     public List<Long> getMessagesFromChat(Long chatId) {
+
+        List<Long> messages = new ArrayList<>();
+        try {
+            String sql = "SELECT * FROM" +
+                    "(SELECT user_id FROM CH_USER WHERE chat_id = ?) as US, MESSAGES" +
+                    "WHERE chat_id = ? AND user_id IN USERS.user_id";
+
+            PreparedStatement statement = connection.prepareStatement(sql);
+            statement.setLong(1, chatId);
+            statement.setLong(2, chatId);
+            ResultSet rs = statement.executeQuery(sql);
+            while (rs.next()) {
+                messages.add(rs.getLong("id"));
+            }
+            rs.close();
+            statement.close();
+            return messages;
+        } catch (SQLException e) {
+            e.printStackTrace();
+            log.error("Caught SQLException in getMessagesFromChat");
+        }
 
         Chat chat = getChatById(chatId);
         return chat.getMessages();
@@ -104,34 +125,41 @@ public class MessageOperations implements MessageStore {
     @Override
     public Message getMessageById(Long messageId) {
 
-        String sql = "SELECT chat_id FROM MESSAGES WHERE id = " + messageId + ";";
+        TextMessage textMessage = null;
         try {
-            Statement statement = connection.createStatement();
-            ResultSet rs = statement.executeQuery(sql);
-            statement.close();
+            PreparedStatement statement = connection
+                    .prepareStatement("SELECT * FROM MESSAGE WHERE id = ?;");
+            statement.setLong(1, messageId);
+            ResultSet rs = statement.executeQuery();
+
             if (rs.next()) {
-                TextMessage textMessage = new TextMessage();
+                textMessage = new TextMessage();
+                textMessage.setType(Type.MSG_TEXT);
                 textMessage.setSenderId(rs.getLong("user_id"));
                 textMessage.setChatId(rs.getLong("chat_id"));
             }
+            rs.close();
+            statement.close();
         } catch (SQLException e) {
-            log.error("Caught SQLException in getChatsByUserId");
+            log.error("Caught SQLException in getMessageById");
             e.printStackTrace();
         }
-        return null;
+        return textMessage;
     }
 
     @Override
     public void addMessage(Long chatId, Message message) {
-        TextMessage textMessage = (TextMessage) message;
-        String sql = "INSERT INTO MESSAGES (user_id,text,chat_id) VALUES (" +
-                textMessage.getSenderId() + "," +
-                textMessage.getText() + "," +
-                chatId + ";";
 
+        TextMessage textMessage = (TextMessage) message;
         try {
-            Statement statement = connection.createStatement();
-            statement.executeUpdate(sql);
+            PreparedStatement statement = connection
+                    .prepareStatement("INSERT INTO MESSAGE (user_id,text,chat_id) " +
+                            "VALUES (?, ?, ?);");
+            statement.setLong(1, textMessage.getSenderId());
+            //// TODO: 15.05.16 обработать привышение в 300 символов
+            statement.setString(2, textMessage.getText());
+            statement.setLong(3, textMessage.getChatId());
+            statement.executeUpdate();
             statement.close();
             connection.commit();
 
@@ -144,12 +172,13 @@ public class MessageOperations implements MessageStore {
 
     @Override
     public void addUserToChat(Long userId, Long chatId) {
-        String sql = "INSERT INTO CH_USER (user_id,chat_id) VALUES (" +
-                userId + "," + chatId + ";";
 
         try {
-            Statement statement = connection.createStatement();
-            statement.executeUpdate(sql);
+            PreparedStatement statement = connection
+                    .prepareStatement("INSERT INTO CH_USER (user_id,chat_id) VALUES (?, ?);");
+            statement.setLong(1, userId);
+            statement.setLong(2, chatId);
+            statement.executeUpdate();
             statement.close();
             connection.commit();
 
@@ -161,18 +190,23 @@ public class MessageOperations implements MessageStore {
     }
 
     public long addChat(long ownerId) {
-        String sql = "INSERT INTO CHAT (owner_id) VALUES (" + ownerId + ");";
+
+
         long id = -1;
         try {
-            Statement statement = connection.createStatement();
-            statement.executeUpdate(sql);
+            PreparedStatement statement = connection
+                    .prepareStatement("INSERT INTO CHAT (owner_id) VALUES (?);");
+            statement.setLong(1, ownerId);
+            statement.executeUpdate();
             connection.commit();
-            sql = "SELECT id FROM CHAT WHERE owner_id = " + ownerId + ";";
-            ResultSet rs = statement.executeQuery(sql);
-            connection.commit();
+            statement = connection
+                    .prepareStatement("SELECT chat_id FROM CHAT WHERE owner_id = ?;");
+            statement.setLong(1, ownerId);
+            ResultSet rs = statement.executeQuery();
             if (rs.next()) {
-                id = (rs.getLong("id"));
+                id = (rs.getLong("chat_id"));
             }
+            rs.close();
             statement.close();
 
         } catch (SQLException e) {
@@ -181,6 +215,5 @@ public class MessageOperations implements MessageStore {
         }
 
         return id;
-
     }
 }

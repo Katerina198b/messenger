@@ -24,7 +24,6 @@ public class ConfigTest {
         Assert.assertTrue(container != null);
         expectedStringProtocol = new StringProtocol();
 
-
         expectedClent = new Client();
         expectedClent.setHost("localhost");
         expectedClent.setPort(19000);
@@ -36,7 +35,6 @@ public class ConfigTest {
     public void testGetByName() throws Exception {
         Client client = (Client) container.getByName("client");
         Assert.assertTrue(client != null);
-        System.out.println(client.getHost() + client.getPort() + client.getProtocol().toString());
         Assert.assertEquals(client, expectedClent);
     }
 

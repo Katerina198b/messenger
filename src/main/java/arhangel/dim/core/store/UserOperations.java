@@ -1,25 +1,25 @@
 package arhangel.dim.core.store;
 
 import arhangel.dim.core.User;
-import com.sun.glass.ui.EventLoop;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-
-import java.beans.*;
 import java.sql.*;
-import java.sql.Statement;
 import java.util.Optional;
+
 
 public class UserOperations implements UserStore {
 
     private Connection connection;
     private Logger log = LoggerFactory.getLogger(UserOperations.class);
 
-    public UserOperations() throws Exception {
-        Class.forName("org.postgresql.Driver");
-        this.connection = DriverManager.getConnection("jdbc:postgresql://178.62.140.149:5432/Katerina198b",
-                "trackuser", "trackuser");
-        connection.setAutoCommit(false);
+    public UserOperations(Connection connection) {
+
+        try {
+            this.connection = connection;
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Failed into setConnection");
+        }
 
     }
 
@@ -36,7 +36,7 @@ public class UserOperations implements UserStore {
             return this.getUser(login, password);
 
         } catch (SQLException e) {
-            log.error("Failed into addUser: {}", e);
+            log.error("Failed into addUser: ", e);
             e.printStackTrace();
         }
         return null;
@@ -88,7 +88,9 @@ public class UserOperations implements UserStore {
     @Override
     public User getUser(String login, String password) {
 
+        log.info("getUser: login " + login + ", password " + password);
         try {
+
             PreparedStatement stmt = connection
                     .prepareStatement("SELECT * FROM Users WHERE login = ? AND password = ?;");
             stmt.setString(1, login);

@@ -17,7 +17,7 @@ public class LoginMessage extends Message {
     }
 
     public String getLogin() {
-        return this.login;
+        return login;
     }
 
     public void setPassword(String password) {
@@ -49,7 +49,6 @@ public class LoginMessage extends Message {
     }
 
     @Override
-    // Зачем элементу hashcode?
     public int hashCode() {
         return Objects.hash(super.hashCode(), login, password);
     }

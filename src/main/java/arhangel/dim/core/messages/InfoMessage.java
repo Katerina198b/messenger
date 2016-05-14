@@ -1,6 +1,7 @@
 /* получить всю информацию о пользователе,
  * без аргументов - о себе (только для залогиненных пользователей)
  */
+
 package arhangel.dim.core.messages;
 
 import java.util.Objects;

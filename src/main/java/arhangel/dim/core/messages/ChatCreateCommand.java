@@ -23,11 +23,14 @@ public class ChatCreateCommand implements Command {
 
     @Override
     public void execute(Session session, Message message) throws CommandException {
+
+        log.info("{}", message.toString());
+
         Optional<User> optionalUser = Optional.ofNullable(session.getUser());
         try {
             if (optionalUser.isPresent()) {
                 ChatCreateMessage chatCreateMessage = (ChatCreateMessage) message;
-                MessageOperations messageOperations = new MessageOperations();
+                MessageOperations messageOperations = new MessageOperations(session.getConnection());
                 List<Long> ids = chatCreateMessage.getIds();
                 if (ids.size() == 1) {
                     Chat chat;
@@ -49,7 +52,7 @@ public class ChatCreateCommand implements Command {
                     long chatId = messageOperations.addChat(session.getUser().getId());
                     messageOperations.addUserToChat(session.getUser().getId(), chatId);
                     for (int i = 0; i < ids.size(); i++) {
-                        messageOperations.addUserToChat(ids.get(i),chatId);
+                        messageOperations.addUserToChat(ids.get(i), chatId);
                     }
                     StatusMessage statusMessage = new StatusMessage();
                     statusMessage.setStatus(Status.ACCEPTED);
@@ -59,6 +62,7 @@ public class ChatCreateCommand implements Command {
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();
                 errorMessage.setType(Type.MSG_ERROR);
+                errorMessage.setText("Sorry, this is available only for registered users.");
                 session.send(errorMessage);
             }
         } catch (Exception e) {

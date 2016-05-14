@@ -35,22 +35,20 @@ public class Server {
     public static final int DEFAULT_MAX_CONNECT = 16;
     static Logger log = LoggerFactory.getLogger(Server.class);
 
-    // Засетить из конфига
+
     private int port;
     private Protocol protocol;
     private int maxConnection = DEFAULT_MAX_CONNECT;
     private ServerSocket serverSocket;
-    //Зачем это?
+
     private UserOperations userStore;
     private MessageOperations messageStore;
 
     public Protocol getProtocol() {
-
         return protocol;
     }
 
     public void stop(ExecutorService pool) {
-
         pool.shutdown();
     }
 

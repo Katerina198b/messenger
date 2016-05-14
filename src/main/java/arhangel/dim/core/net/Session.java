@@ -4,7 +4,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.Socket;
+import java.sql.Connection;
+import java.sql.DriverManager;
 import java.util.Arrays;
+import java.util.Optional;
 
 import arhangel.dim.core.User;
 import arhangel.dim.core.messages.*;
@@ -36,11 +39,19 @@ public class Session implements ConnectionHandler {
     private Protocol protocol;
     private Logger log = LoggerFactory.getLogger(Session.class);
 
+
+    /**
+     * Для каждого потока (пользователя, сессии) должен быть свой connection
+     */
+    public Connection connection;
+
+
     public Session(Socket socket, Server server) throws IOException {
         this.socket = socket;
         this.in = socket.getInputStream();
         this.out = socket.getOutputStream();
         this.protocol = server.getProtocol();
+        this.setConnection();
     }
 
     public void setUser(User user) {
@@ -51,10 +62,27 @@ public class Session implements ConnectionHandler {
         return user;
     }
 
+    public void setConnection() {
+        try {
+            Class.forName("org.postgresql.Driver");
+            connection = DriverManager.getConnection("jdbc:postgresql://178.62.140.149:5432/Katerina198b",
+                    "trackuser", "trackuser");
+            connection.setAutoCommit(false);
+        } catch (Exception e) {
+            e.printStackTrace();
+            log.error("Failed into setConnection");
+        }
+
+
+    }
+
+    public Connection getConnection() {
+        return connection;
+    }
+
     @Override
     public void send(Message msg) throws ProtocolException, IOException {
 
-        //Отправить клиенту сообщение
         try {
             byte[] buf = protocol.encode(msg);
             log.info("send: The message is sent to client");
@@ -70,7 +98,6 @@ public class Session implements ConnectionHandler {
     @Override
     public void onMessage(Message msg) {
 
-        //Пришло некое сообщение от клиента, его нужно обработать
         log.info("onMessage: {}", msg.toString());
         Type type = msg.getType();
         try {
@@ -118,17 +145,22 @@ public class Session implements ConnectionHandler {
 
     public void expectMessage() {
 
-        try {
-            byte[] buf = new byte[32 * 1024];
-            in.read(buf);
-            Message msg = protocol.decode(buf);
-            log.info("expectMessage: msg = {}", msg.toString());
-            onMessage(msg);
+        while (in != null) {
+            try {
+                byte[] buf = new byte[32 * 1024];
+                in.read(buf);
+                log.info("Message is received...");
+                Message msg = protocol.decode(buf);
+                log.info("expectMessage: msg = {}", msg.toString());
+                onMessage(msg);
 
-        } catch (Exception e) {
-            log.error("expectMessage: ", e);
-            e.printStackTrace();
+            } catch (Exception e) {
+                log.error("expectMessage: ", e);
+                e.printStackTrace();
+            }
         }
+       this.close();
+
     }
 
     @Override

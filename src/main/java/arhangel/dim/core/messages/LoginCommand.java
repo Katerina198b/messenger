@@ -29,15 +29,17 @@ public class LoginCommand implements Command {
         try {
             if (!optionalUser.isPresent()) {
                 LoginMessage loginMessage = (LoginMessage) message;
-                UserOperations userOperations = new UserOperations();
+                UserOperations userOperations = new UserOperations(session.getConnection());
                 User user = userOperations.getUser(loginMessage.getLogin(), loginMessage.getPassword());
                 if (Optional.ofNullable(user).isPresent()) {
                     log.info("authorization..");
                     session.setUser(user);
-                    InfoMessage infoMessage = new InfoMessage();
+                    InfoResultMessage infoMessage = new InfoResultMessage();
+                    infoMessage.setType(Type.MSG_INFO_RESULT);
                     infoMessage.setSenderId(session.getUser().getId());
                     infoMessage.setUserId(session.getUser().getId());
                     infoMessage.setLogin(user.getName());
+                    infoMessage.setNewSession(true);
                     session.send(infoMessage);
 
                 } else {
@@ -50,11 +52,13 @@ public class LoginCommand implements Command {
                     } else {
                         log.info("Creating new user..");
                         User newUser = userOperations.addUser(loginMessage.getLogin(), loginMessage.getPassword());
-                        InfoMessage infoMessage = new InfoMessage();
-                        infoMessage.setType(Type.MSG_INFO);
-                        infoMessage.setSenderId(newUser.getId());
+                        InfoResultMessage infoMessage = new InfoResultMessage();
+                        session.setUser(newUser);
+                        infoMessage.setType(Type.MSG_INFO_RESULT);
+                        infoMessage.setSenderId(session.getUser().getId());
                         infoMessage.setLogin(newUser.getName());
                         infoMessage.setUserId(newUser.getId());
+                        infoMessage.setNewSession(true);
                         session.send(infoMessage);
                     }
                 }

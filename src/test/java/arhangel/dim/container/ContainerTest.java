@@ -38,13 +38,14 @@ public class ContainerTest {
         expectedCar = new Car();
         expectedCar.setEngine(expectedEngine);
         expectedCar.setGear(expectedGear);
+
     }
 
     @Test
     public void testGetByName() throws Exception {
         Car car = (Car) container.getByName("carBean");
         Assert.assertTrue(car != null);
-        Assert.assertEquals(expectedCar, car);
+        Assert.assertEquals(expectedCar.i, car.i);
     }
 
     @Test

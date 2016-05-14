@@ -29,7 +29,7 @@ public class TextCommand implements Command {
         try {
             if (optionalUser.isPresent()) {
 
-                MessageOperations messageOperations = new MessageOperations();
+                MessageOperations messageOperations = new MessageOperations(session.getConnection());
                 messageOperations.addMessage(textMessage.getChatId(), textMessage);
                 StatusMessage statusMessage = new StatusMessage();
                 statusMessage.setType(Type.MSG_STATUS);
@@ -40,6 +40,8 @@ public class TextCommand implements Command {
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();
                 errorMessage.setType(Type.MSG_ERROR);
+                errorMessage.setSenderId(Long.valueOf(0));
+                errorMessage.setText("Sorry, this action is available only for registered users");
                 session.send(errorMessage);
             }
 

@@ -27,7 +27,7 @@ public class InfoCommand implements Command {
         Optional<User> optionalUser = Optional.ofNullable(session.getUser());
         try {
             if (optionalUser.isPresent()) {
-                UserOperations userOperations = new UserOperations();
+                UserOperations userOperations = new UserOperations(session.getConnection());
                 User user = null;
                 if (infoMessage.getUserId() == -1) {
                     user = userOperations.getUserById(session.getUser().getId());
@@ -35,12 +35,20 @@ public class InfoCommand implements Command {
                     user = userOperations.getUserById(infoMessage.getUserId());
                 }
 
-                InfoResultMessage infoResultMessage = new InfoResultMessage();
-                infoResultMessage.setType(Type.MSG_INFO_RESULT);
-                infoResultMessage.setSenderId(session.getUser().getId());
-                infoResultMessage.setUserId(user.getId());
-                infoResultMessage.setLogin(user.getName());
-                session.send(infoResultMessage);
+                if (Optional.ofNullable(user).isPresent()) {
+
+                    InfoResultMessage infoResultMessage = new InfoResultMessage();
+                    infoResultMessage.setType(Type.MSG_INFO_RESULT);
+                    infoResultMessage.setSenderId(session.getUser().getId());
+                    infoResultMessage.setUserId(user.getId());
+                    infoResultMessage.setLogin(user.getName());
+                    session.send(infoResultMessage);
+                } else {
+                    ErrorMessage errorMessage = new ErrorMessage();
+                    errorMessage.setType(Type.MSG_ERROR);
+                    errorMessage.setText("Sorry, but this user is not exist.");
+                    session.send(errorMessage);
+                }
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();
                 errorMessage.setType(Type.MSG_ERROR);
@@ -49,7 +57,7 @@ public class InfoCommand implements Command {
             }
 
         } catch (Exception e) {
-            log.error("", e);
+            log.error("{}", e);
             throw new CommandException("InfoCommand " + e);
         }
     }
