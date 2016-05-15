@@ -29,7 +29,6 @@ public class ChatListCommand implements Command {
     @Override
     public void execute(Session session, Message message) throws CommandException {
 
-        ChatListMessage chatListMessage = (ChatListMessage) message;
         Optional<User> optionalUser = Optional.ofNullable(session.getUser());
         try {
             if (optionalUser.isPresent()) {
@@ -37,15 +36,11 @@ public class ChatListCommand implements Command {
                 MessageOperations messageOperations = new MessageOperations(session.getConnection());
                 List<Long> chats = messageOperations.getChatsByUserId(session.getUser().getId());
                 ChatListResultMessage chatListResultMessage = new ChatListResultMessage();
-                chatListResultMessage.setType(Type.MSG_CHAT_LIST_RESULT);
                 chatListResultMessage.setSenderId(session.getUser().getId());
-                for (int i = 0; i < chats.size(); i++) {
-                    chatListResultMessage.addChat(chats.get(i));
-                }
+                chatListResultMessage.setChats(chats);
                 session.send(chatListResultMessage);
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();
-                errorMessage.setType(Type.MSG_ERROR);
                 errorMessage.setText("Sorry, this action is available only for registered users");
                 session.send(errorMessage);
             }

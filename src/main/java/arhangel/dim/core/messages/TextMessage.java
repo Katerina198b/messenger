@@ -12,28 +12,27 @@ public class TextMessage extends Message {
     private long chatId;
     private String text;
 
-    public String getText() {
+    public TextMessage(){
+        this.setType(Type.MSG_TEXT);
+    }
 
+    public String getText() {
         return text;
     }
 
     public void setText(String text) {
-
         this.text = text;
     }
 
     public void setChatId(long chatId) {
-
         this.chatId = chatId;
     }
 
     public void setChatId(String chatId) {
-
         this.chatId = Long.valueOf(chatId);
     }
 
     public long getChatId() {
-
         return chatId;
     }
 
@@ -62,7 +61,7 @@ public class TextMessage extends Message {
     @Override
     public String toString() {
         return "TextMessage{" +
-                "text='" + text + '\'' +
-                '}';
+                "chat id = " + chatId + " , " +
+                "text = '" + text  + "\' }";
     }
 }

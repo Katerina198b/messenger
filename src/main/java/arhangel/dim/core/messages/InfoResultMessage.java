@@ -8,6 +8,10 @@ public class InfoResultMessage extends Message{
     private String login;
     private boolean newSession;
 
+    public InfoResultMessage() {
+        this.setType(Type.MSG_INFO_RESULT);
+    }
+
     public void setUserId(String userId) {
         this.userId = Long.valueOf(userId);
     }

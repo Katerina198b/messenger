@@ -1,17 +1,21 @@
 package arhangel.dim.core.messages;
 
 import java.util.Objects;
+//TODO разобраться с типом данных
 
 public class ChatGetResultMessage extends Message {
+
     private long chatId;
 
+    public ChatGetResultMessage() {
+        this.setType(Type.MSG_CHAT_HIST);
+    }
 
     public long getChatId() {
         return chatId;
     }
 
     public void setChatId(String chatId) {
-
         this.chatId = Long.valueOf(chatId);
     }
 

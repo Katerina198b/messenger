@@ -9,8 +9,13 @@ package arhangel.dim.core.messages;
 import java.util.Objects;
 
 public class LoginMessage extends Message {
+
     private String login;
     private String password;
+
+    public LoginMessage() {
+        this.setType(Type.MSG_LOGIN);
+    }
 
     public void setLogin(String login) {
         this.login = login;

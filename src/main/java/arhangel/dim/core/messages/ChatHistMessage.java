@@ -3,20 +3,22 @@ package arhangel.dim.core.messages;
 /**
  * список сообщений из указанного чата (только для залогиненных пользователей)
  */
-
 import java.util.Objects;
 
 public class ChatHistMessage extends Message {
+
     private long chatId;
 
+    public ChatHistMessage() {
+        this.setType(Type.MSG_CHAT_HIST);
+    }
 
     public long getChatId() {
         return chatId;
     }
 
     public void setChatId(String id) {
-        Integer chatId = new Integer(id);
-        this.chatId = chatId;
+        this.chatId = Long.valueOf(id);
     }
 
     @Override

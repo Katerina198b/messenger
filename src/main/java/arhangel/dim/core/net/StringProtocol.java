@@ -26,7 +26,6 @@ public class StringProtocol implements Protocol {
 
             case MSG_TEXT:
                 TextMessage textMsg = new TextMessage();
-                textMsg.setType(type);
                 textMsg.setSenderId(tokens[1]);
                 textMsg.setChatId(tokens[2]);
                 textMsg.setText(tokens[3]);
@@ -34,7 +33,6 @@ public class StringProtocol implements Protocol {
 
             case MSG_LOGIN:
                 LoginMessage loginMessage = new LoginMessage();
-                loginMessage.setType(type);
                 loginMessage.setSenderId(tokens[1]);
                 loginMessage.setLogin(tokens[2]);
                 loginMessage.setPassword(tokens[3]);
@@ -42,33 +40,31 @@ public class StringProtocol implements Protocol {
 
             case MSG_STATUS:
                 StatusMessage statusMessage = new StatusMessage();
-                statusMessage.setType(type);
                 statusMessage.setSenderId(tokens[1]);
                 statusMessage.setStatus(Status.valueOf(tokens[2]));
                 return statusMessage;
 
             case MSG_CHAT_CREATE:
                 ChatCreateMessage chatCreateMessage = new ChatCreateMessage();
-                chatCreateMessage.setType(type);
                 chatCreateMessage.setSenderId(tokens[1]);
-                for (int i = 2; i < tokens.length; i++) {
+                for (int i = 2; i < tokens.length - 1; i++) {
                     chatCreateMessage.addId(tokens[i]);
                 }
                 return chatCreateMessage;
 
             case MSG_CHAT_HIST:
                 ChatHistMessage chatHistMessage = new ChatHistMessage();
-                chatHistMessage.setType(type);
                 chatHistMessage.setSenderId(tokens[1]);
                 chatHistMessage.setChatId(tokens[2]);
                 return chatHistMessage;
 
             case MSG_CHAT_HIST_RESULT:
                 ChatHistResultMessage chatHistResultMessage = new ChatHistResultMessage();
-                chatHistResultMessage.setType(type);
                 chatHistResultMessage.setSenderId(tokens[1]);
                 long chatId = Long.valueOf(tokens[2]);
-                for (int i = 3; i < tokens.length; i = i + 2) {
+                chatHistResultMessage.setChatId(chatId);
+
+                for (int i = 3; i < tokens.length - 1; i = i + 2) {
                     //не уверена, где именно надо обьявлять TextMessage
                     TextMessage message = new TextMessage();
                     message.setChatId(chatId);
@@ -80,29 +76,25 @@ public class StringProtocol implements Protocol {
 
             case MSG_CHAT_LIST:
                 ChatListMessage chatListMessage = new ChatListMessage();
-                chatListMessage.setType(type);
                 chatListMessage.setSenderId(tokens[1]);
                 return chatListMessage;
 
             case MSG_CHAT_LIST_RESULT:
                 ChatListResultMessage chatListResultMessage = new ChatListResultMessage();
-                chatListResultMessage.setType(type);
                 chatListResultMessage.setSenderId(tokens[1]);
-                for (int i = 2; i < tokens.length; i++) {
+                for (int i = 2; i < tokens.length - 1; i++) {
                     chatListResultMessage.addChat(tokens[i]);
                 }
                 return chatListResultMessage;
 
             case MSG_INFO:
                 InfoMessage infoMessage = new InfoMessage();
-                infoMessage.setType(type);
                 infoMessage.setSenderId(tokens[1]);
                 infoMessage.setUserId(tokens[2]);
                 return infoMessage;
 
             case MSG_INFO_RESULT:
                 InfoResultMessage infoResultMessage = new InfoResultMessage();
-                infoResultMessage.setType(type);
                 infoResultMessage.setSenderId(tokens[1]);
                 infoResultMessage.setUserId(tokens[2]);
                 infoResultMessage.setLogin(tokens[3]);
@@ -111,7 +103,6 @@ public class StringProtocol implements Protocol {
 
             case MSG_ERROR:
                 ErrorMessage errorMessage = new ErrorMessage();
-                errorMessage.setType(type);
                 errorMessage.setSenderId(tokens[1]);
                 errorMessage.setText(tokens[2]);
                 return errorMessage;
@@ -136,7 +127,7 @@ public class StringProtocol implements Protocol {
             case MSG_TEXT:
                 TextMessage textMessage = (TextMessage) msg;
                 builder.append(textMessage.getChatId()).append(DELIMITER);
-                builder.append(textMessage.getText());
+                builder.append(textMessage.getText()).append(DELIMITER);
                 break;
 
             case MSG_LOGIN:
@@ -148,10 +139,8 @@ public class StringProtocol implements Protocol {
             case MSG_CHAT_CREATE:
                 ChatCreateMessage chatCreateMessage = (ChatCreateMessage) msg;
                 for (int i = 0; i < chatCreateMessage.getIdsCount(); i++) {
-                    builder.append(String.valueOf(chatCreateMessage.getId(i)));
-                    if (i < (chatCreateMessage.getIdsCount() - 1)) {
-                        builder.append(DELIMITER);
-                    }
+                    builder.append(String.valueOf(chatCreateMessage.getId(i)))
+                            .append(DELIMITER);
                 }
                 break;
 
@@ -174,7 +163,7 @@ public class StringProtocol implements Protocol {
 
             case MSG_CHAT_HIST:
                 ChatHistMessage chatHistMessage = (ChatHistMessage) msg;
-                builder.append(chatHistMessage.getChatId());
+                builder.append(chatHistMessage.getChatId()).append(DELIMITER);
                 break;
 
             case MSG_CHAT_HIST_RESULT:
@@ -183,10 +172,7 @@ public class StringProtocol implements Protocol {
                 List<TextMessage> messages = chatHistResultMessage.getMessages();
                 for (int i = 0; i < messages.size(); i++) {
                     builder.append(messages.get(i).getSenderId()).append(DELIMITER);
-                    builder.append(messages.get(i).getText());
-                    if (i < (messages.size() - 1)) {
-                        builder.append(DELIMITER);
-                    }
+                    builder.append(messages.get(i).getText()).append(DELIMITER);
                 }
                 break;
 

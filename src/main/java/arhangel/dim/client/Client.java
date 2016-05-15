@@ -93,9 +93,6 @@ public class Client implements ConnectionHandler {
         socketThread = new Thread(() -> {
             final byte[] buf = new byte[1024 * 64];
             log.info("Starting listener thread...");
-            /*
-             * Класс thread содержит метод урпавлеиня потоками. interrupt - прерванный
-             */
             while (!Thread.currentThread().isInterrupted()) {
                 try {
                     //if (in.available() > 0)
@@ -106,6 +103,7 @@ public class Client implements ConnectionHandler {
                     }
                 } catch (SocketException e) {
                     return;
+
                 } catch (IOException | ProtocolException e) {
                     log.error("Failed into initSocket");
                     e.printStackTrace();
@@ -137,7 +135,6 @@ public class Client implements ConnectionHandler {
     public void invalidInput() {
 
         ErrorMessage errorMessage = new ErrorMessage();
-        errorMessage.setType(Type.MSG_ERROR);
         errorMessage.setText("Invalid input. For more information please enter \"/help\"");
         log.error("processInput : Invalid input");
         this.onMessage(errorMessage);
@@ -161,7 +158,6 @@ public class Client implements ConnectionHandler {
                 if (tokens.length == 3) {
                     LoginMessage loginMessage = new LoginMessage();
                     loginMessage.setSenderId(this.getSenderId());
-                    loginMessage.setType(Type.MSG_LOGIN);
                     loginMessage.setLogin(tokens[1]);
                     loginMessage.setPassword(tokens[2]);
                     send(loginMessage);
@@ -175,18 +171,20 @@ public class Client implements ConnectionHandler {
              */
             case "/help":
                 HelpMessage helpMessage = new HelpMessage();
-                helpMessage.setType(Type.MSG_INFO);
                 helpMessage.setSenderId(this.getSenderId());
                 this.onMessage(helpMessage);
                 break;
 
             case "/text":
-                if (tokens.length == 3) {
+                if (tokens.length > 2) {
                     TextMessage textMessage = new TextMessage();
-                    textMessage.setType(Type.MSG_TEXT);
                     textMessage.setSenderId(this.getSenderId());
                     textMessage.setChatId(tokens[1]);
-                    textMessage.setText(tokens[2]);
+                    StringBuilder builder = new StringBuilder();
+                    for (int i = 2; i < tokens.length; i ++) {
+                        builder.append(tokens[i]).append(" ");
+                    }
+                    textMessage.setText(builder.toString());
                     send(textMessage);
                 } else {
                     this.invalidInput();
@@ -199,7 +197,6 @@ public class Client implements ConnectionHandler {
                     case 1:
                         InfoMessage infoMessage = new InfoMessage();
                         // число -1 будет обозначать запрос о себе
-                        infoMessage.setType(Type.MSG_INFO);
                         infoMessage.setSenderId(this.getSenderId());
                         infoMessage.setUserId(-1L);
                         send(infoMessage);
@@ -207,7 +204,6 @@ public class Client implements ConnectionHandler {
 
                     case 2:
                         InfoMessage message = new InfoMessage();
-                        message.setType(Type.MSG_INFO);
                         message.setSenderId(this.getSenderId());
                         message.setUserId(tokens[1]);
                         send(message);
@@ -221,7 +217,6 @@ public class Client implements ConnectionHandler {
             case "/chat_list":
                 if (tokens.length == 1) {
                     ChatListMessage chatListMessage = new ChatListMessage();
-                    chatListMessage.setType(Type.MSG_CHAT_LIST);
                     chatListMessage.setSenderId(this.getSenderId());
                     send(chatListMessage);
                 } else {
@@ -229,20 +224,34 @@ public class Client implements ConnectionHandler {
                 }
                 break;
 
-            case "/chat_create":
-                ChatCreateMessage chatCreateMessage = new ChatCreateMessage();
-                chatCreateMessage.setType(Type.MSG_CHAT_CREATE);
-                chatCreateMessage.setSenderId(this.getSenderId());
-                for (int i = 1; i < tokens.length + 1; i++) {
-                    chatCreateMessage.addId(tokens[i]);
+            case "/chat_hist":
+                if (tokens.length == 2) {
+                    ChatHistMessage chatHistMessage = new ChatHistMessage();
+                    chatHistMessage.setSenderId(this.getSenderId());
+                    chatHistMessage.setChatId(tokens[1]);
+                    send(chatHistMessage);
+                } else {
+                    this.invalidInput();
                 }
-                send(chatCreateMessage);
+                break;
+
+
+            case "/chat_create":
+                if (tokens.length > 1) {
+                    ChatCreateMessage chatCreateMessage = new ChatCreateMessage();
+                    chatCreateMessage.setSenderId(this.getSenderId());
+                    for (int i = 1; i < tokens.length; i++) {
+                        chatCreateMessage.addId(tokens[i]);
+                    }
+                    send(chatCreateMessage);
+                } else {
+                    this.invalidInput();
+                }
                 break;
 
             case "/chat_history":
                 if (tokens.length == 2) {
                     ChatHistMessage chatHistMessage = new ChatHistMessage();
-                    chatHistMessage.setType(Type.MSG_CHAT_HIST);
                     chatHistMessage.setSenderId(this.getSenderId());
                     chatHistMessage.setChatId(tokens[1]);
                 } else {

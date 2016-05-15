@@ -7,8 +7,13 @@ package arhangel.dim.core.messages;
 import java.util.Objects;
 
 public class InfoMessage extends Message {
+
     private long userId;
     private String login;
+
+    public InfoMessage() {
+        this.setType(Type.MSG_INFO);
+    }
 
     public void setUserId(String userId) {
         this.userId = Long.valueOf(userId);

@@ -46,7 +46,6 @@ public class LoginCommand implements Command {
                     if (userOperations.userIsPresentByLogin(loginMessage.getLogin())) {
                         ErrorMessage errorMessage = new ErrorMessage();
                         errorMessage.setType(Type.MSG_ERROR);
-                        errorMessage.setSenderId(session.getUser().getId());
                         errorMessage.setText("Sorry, but password is incorrect or login is already used");
                         session.send(errorMessage);
                     } else {

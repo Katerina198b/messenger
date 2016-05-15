@@ -3,7 +3,12 @@ package arhangel.dim.core.messages;
 import java.util.Objects;
 
 public class StatusMessage extends Message {
+
     private Status status;
+
+    public StatusMessage() {
+        this.setType(Type.MSG_STATUS);
+    }
 
     public Status getStatus() {
         return status;

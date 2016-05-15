@@ -5,12 +5,15 @@ package arhangel.dim.core.messages;
  * (только для залогиненных пользователей).
  * От сервера приходит список id чатов
  */
-
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
 public class ChatListMessage extends Message {
+
+    public ChatListMessage() {
+        this.setType(Type.MSG_CHAT_LIST);
+    }
 
     @Override
     public boolean equals(Object other) {

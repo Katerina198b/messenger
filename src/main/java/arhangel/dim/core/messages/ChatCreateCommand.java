@@ -6,11 +6,11 @@ package arhangel.dim.core.messages;
  * /chat_create 3 - создать чат с пользователем id=3,
  * если такой чат уже существует, вернуть существующий
  */
-
 import arhangel.dim.core.Chat;
 import arhangel.dim.core.User;
 import arhangel.dim.core.net.Session;
 import arhangel.dim.core.store.MessageOperations;
+import arhangel.dim.core.store.UserOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -27,11 +27,29 @@ public class ChatCreateCommand implements Command {
         log.info("{}", message.toString());
 
         Optional<User> optionalUser = Optional.ofNullable(session.getUser());
+
         try {
             if (optionalUser.isPresent()) {
+
                 ChatCreateMessage chatCreateMessage = (ChatCreateMessage) message;
-                MessageOperations messageOperations = new MessageOperations(session.getConnection());
                 List<Long> ids = chatCreateMessage.getIds();
+                if (chatCreateMessage.getIds().contains(session.getUser().getId())) {
+                    ErrorMessage errorMessage = new ErrorMessage();
+                    errorMessage.setText("Sorry, you can't add yourself to the chat .");
+                    session.send(errorMessage);
+                    return;
+                }
+                UserOperations userOperations = new UserOperations(session.getConnection());
+                for (int i = 0; i < ids.size(); i++) {
+                    if (userOperations.getUserById(ids.get(i)) == null) {
+                        ErrorMessage errorMessage = new ErrorMessage();
+                        errorMessage.setText("Sorry, you can't add non-existent user to the chat .");
+                        session.send(errorMessage);
+                        return;
+                    }
+                }
+                MessageOperations messageOperations = new MessageOperations(session.getConnection());
+
                 if (ids.size() == 1) {
                     Chat chat;
                     List<Long> participants;
@@ -39,33 +57,34 @@ public class ChatCreateCommand implements Command {
                     for (int i = 0; i < chatsId.size(); i++) {
                         chat = messageOperations.getChatById(chatsId.get(i));
                         participants = chat.getParticipants();
-                        if (participants.size() == 1 && participants.get(0) == ids.get(0)) {
-                            ChatGetResultMessage chatGetResultMessage = new ChatGetResultMessage();
-                            //TODO другой тип
-                            chatGetResultMessage.setType(Type.MSG_CHAT_LIST_RESULT);
-                            chatGetResultMessage.setSenderId(session.getUser().getId());
-                            chatGetResultMessage.setChatId(chatsId.get(i));
-                            session.send(chatGetResultMessage);
+                        if (participants.size() == 1 && (participants.get(0) - ids.get(0) == 0)) {
+                            ErrorMessage errorMessage = new ErrorMessage();
+                            errorMessage.setSenderId(session.getUser().getId());
+                            errorMessage.setText("Chat is exist. Id = " + chatsId.get(i));
+                            session.send(errorMessage);
+                            return;
                         }
                     }
-                } else {
-                    long chatId = messageOperations.addChat(session.getUser().getId());
-                    messageOperations.addUserToChat(session.getUser().getId(), chatId);
-                    for (int i = 0; i < ids.size(); i++) {
-                        messageOperations.addUserToChat(ids.get(i), chatId);
-                    }
-                    StatusMessage statusMessage = new StatusMessage();
-                    statusMessage.setStatus(Status.ACCEPTED);
-                    session.send(statusMessage);
                 }
+
+                long chatId = messageOperations.addChat(session.getUser().getId());
+                messageOperations.addUserToChat(session.getUser().getId(), chatId);
+                for (int i = 0; i < ids.size(); i++) {
+                    messageOperations.addUserToChat(ids.get(i), chatId);
+                }
+                StatusMessage statusMessage = new StatusMessage();
+                statusMessage.setStatus(Status.ACCEPTED);
+                session.send(statusMessage);
+                return;
 
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();
-                errorMessage.setType(Type.MSG_ERROR);
                 errorMessage.setText("Sorry, this is available only for registered users.");
                 session.send(errorMessage);
+                return;
             }
         } catch (Exception e) {
+            log.error("ChatCreateCommand: {}", e);
             throw new CommandException("ChatCreateCommand " + e);
         }
     }

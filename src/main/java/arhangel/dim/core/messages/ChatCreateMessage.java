@@ -14,9 +14,12 @@ import java.util.List;
 import java.util.Objects;
 
 public class ChatCreateMessage extends Message {
-    private long chat;
+
     private List<Long> ids = new ArrayList<>();
 
+    public ChatCreateMessage() {
+        this.setType(Type.MSG_CHAT_CREATE);
+    }
 
     public List<Long> getIds() {
         return ids;
@@ -25,7 +28,6 @@ public class ChatCreateMessage extends Message {
     public int getIdsCount() {
         return ids.size();
     }
-
 
     public void addId(String id) {
         ids.add(Long.valueOf(id));
@@ -47,7 +49,7 @@ public class ChatCreateMessage extends Message {
             return false;
         }
         ChatCreateMessage message = (ChatCreateMessage) other;
-        return Objects.equals(ids, message.ids) && Objects.equals(chat, message.chat);
+        return Objects.equals(ids, message.ids);
     }
 
     @Override
@@ -58,10 +60,6 @@ public class ChatCreateMessage extends Message {
     @Override
     public String toString() {
         return "ChatCreateMessage{" +
-                "chat=" +
-                chat +
-                "users ids=" +
-                ids +
-                '}';
+                "users =" + ids + '}';
     }
 }

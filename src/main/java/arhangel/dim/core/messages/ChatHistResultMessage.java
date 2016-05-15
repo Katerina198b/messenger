@@ -6,10 +6,14 @@ import java.util.Objects;
 
 public class ChatHistResultMessage extends Message {
 
-    private int chatId;
+    private long chatId;
     private List<TextMessage> messages = new ArrayList<>();
 
-    public int getChatId() {
+    public ChatHistResultMessage() {
+        this.setType(Type.MSG_CHAT_HIST_RESULT);
+    }
+
+    public long getChatId() {
         return chatId;
     }
 
@@ -22,7 +26,10 @@ public class ChatHistResultMessage extends Message {
     }
 
     public void setChatId(String id) {
-        Integer chatId = new Integer(id);
+        this.chatId = Long.valueOf(id);
+    }
+
+    public void setChatId(long chatId) {
         this.chatId = chatId;
     }
 
@@ -52,10 +59,11 @@ public class ChatHistResultMessage extends Message {
 
     @Override
     public String toString() {
-        StringBuilder stringBuilder = new StringBuilder("ChatHistResultMessage{ chat id=" + chatId + "messages: ");
+        StringBuilder stringBuilder = new StringBuilder("ChatHistResultMessage{ chat id= " + chatId + " messages: \n");
         for (int i = 0; i < messages.size(); i++) {
             stringBuilder.append(messages.get(i).toString()).append("\n");
         }
+        stringBuilder.append("}");
         return stringBuilder.toString();
     }
 }

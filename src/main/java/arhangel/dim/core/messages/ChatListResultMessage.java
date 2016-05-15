@@ -13,6 +13,13 @@ public class ChatListResultMessage extends Message {
 
     private List<Long> chats = new ArrayList<>();
 
+    public void setChats(List<Long> chats) {
+        this.chats.addAll(chats);
+    }
+
+    public ChatListResultMessage() {
+        this.setType(Type.MSG_CHAT_LIST_RESULT);
+    }
 
     public int length() {
         return chats.size();

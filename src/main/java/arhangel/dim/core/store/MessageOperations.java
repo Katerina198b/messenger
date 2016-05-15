@@ -22,25 +22,20 @@ public class MessageOperations implements MessageStore {
     private Logger log = LoggerFactory.getLogger(MessageOperations.class);
 
     public MessageOperations(Connection connection) throws Exception {
-
         this.connection = connection;
-
     }
 
     @Override
     public List<Long> getChatsByUserId(Long userId) {
 
-        boolean empty = true;
-
         List<Long> chatList = new ArrayList<>();
         try {
             PreparedStatement statement = connection
-                    .prepareStatement("SELECT chat_id FROM CH_USER WHERE user_id = ?;");
+                    .prepareStatement("SELECT DISTINCT chat_id FROM ch_user WHERE user_id = ?;");
             statement.setLong(1, userId);
             ResultSet rs = statement.executeQuery();
 
             while (rs.next()) {
-                empty = false;
                 Long chatId = rs.getLong("chat_id");
                 chatList.add(chatId);
             }
@@ -50,9 +45,6 @@ public class MessageOperations implements MessageStore {
         } catch (SQLException e) {
             log.error("Caught SQLException in getChatsByUserId");
             e.printStackTrace();
-        }
-        if (empty) {
-            return null;
         }
         return chatList;
     }
@@ -99,14 +91,13 @@ public class MessageOperations implements MessageStore {
 
         List<Long> messages = new ArrayList<>();
         try {
-            String sql = "SELECT * FROM" +
-                    "(SELECT user_id FROM CH_USER WHERE chat_id = ?) as US, MESSAGES" +
-                    "WHERE chat_id = ? AND user_id IN USERS.user_id";
+            String sql = "SELECT id FROM MESSAGE " +
+                    "WHERE chat_id = ? AND user_id IN (SELECT user_id FROM CH_USER WHERE chat_id = ?)";
 
             PreparedStatement statement = connection.prepareStatement(sql);
             statement.setLong(1, chatId);
             statement.setLong(2, chatId);
-            ResultSet rs = statement.executeQuery(sql);
+            ResultSet rs = statement.executeQuery();
             while (rs.next()) {
                 messages.add(rs.getLong("id"));
             }
@@ -134,9 +125,9 @@ public class MessageOperations implements MessageStore {
 
             if (rs.next()) {
                 textMessage = new TextMessage();
-                textMessage.setType(Type.MSG_TEXT);
                 textMessage.setSenderId(rs.getLong("user_id"));
                 textMessage.setChatId(rs.getLong("chat_id"));
+                textMessage.setText(rs.getString("text"));
             }
             rs.close();
             statement.close();
@@ -192,7 +183,7 @@ public class MessageOperations implements MessageStore {
     public long addChat(long ownerId) {
 
 
-        long id = -1;
+        long id = 0;
         try {
             PreparedStatement statement = connection
                     .prepareStatement("INSERT INTO CHAT (owner_id) VALUES (?);");
@@ -203,7 +194,7 @@ public class MessageOperations implements MessageStore {
                     .prepareStatement("SELECT chat_id FROM CHAT WHERE owner_id = ?;");
             statement.setLong(1, ownerId);
             ResultSet rs = statement.executeQuery();
-            if (rs.next()) {
+            while (rs.next()) {
                 id = (rs.getLong("chat_id"));
             }
             rs.close();
