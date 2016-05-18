@@ -38,11 +38,7 @@ public class Server {
 
     private int port;
     private Protocol protocol;
-    private int maxConnection = DEFAULT_MAX_CONNECT;
     private ServerSocket serverSocket;
-
-    private UserOperations userStore;
-    private MessageOperations messageStore;
 
     public Protocol getProtocol() {
         return protocol;
@@ -80,7 +76,6 @@ public class Server {
                 } catch (NullPointerException e) {
                     log.error("Failed to create socket: ", e);
                 }
-
 
             }
 

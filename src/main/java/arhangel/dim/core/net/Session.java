@@ -87,6 +87,7 @@ public class Session implements ConnectionHandler {
             byte[] buf = protocol.encode(msg);
             log.info("send: The message is sent to client");
             out.write(buf);
+            out.flush();
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -145,27 +146,26 @@ public class Session implements ConnectionHandler {
 
     public void expectMessage() {
 
-        while (in != null) {
-            try {
-                byte[] buf = new byte[32 * 1024];
-                in.read(buf);
-                log.info("Message is received...");
-                Message msg = protocol.decode(buf);
-                log.info("expectMessage: msg = {}", msg.toString());
-                onMessage(msg);
-
-            } catch (Exception e) {
-                log.error("expectMessage: ", e);
-                e.printStackTrace();
+        try {
+            byte[] buf = new byte[32 * 1024];
+            in.read(buf);
+            Message msg = protocol.decode(buf);
+            if (msg == null) {
+                log.info("User disconnected");
+                close();
+                return;
             }
-        }
-       this.close();
+            log.info("Message is received...");
+            onMessage(msg);
 
+        } catch (Exception e) {
+            log.error("expectMessage: ", e);
+            e.printStackTrace();
+        }
     }
 
     @Override
     public void close() {
-        // TODO: закрыть in/out каналы и сокет. Освободить другие ресурсы, если необходимо
         try {
             log.info("close: Trying to close in/out channels and socket in Session");
             in.close();

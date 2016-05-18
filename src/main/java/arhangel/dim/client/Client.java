@@ -1,11 +1,7 @@
 package arhangel.dim.client;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.InetAddress;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SelectionKey;
@@ -13,7 +9,6 @@ import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Scanner;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -47,18 +42,13 @@ public class Client implements ConnectionHandler {
      */
     private Protocol protocol;
     private int port;
-    private static String host;
+    private String host;
 
     /**
      * Тред "слушает" сокет на наличие входящих сообщений от сервера
      */
-    private Thread socketThread;
-
-    /**
-     * С каждым сокетом связано 2 канала in/out
-     */
-    private InputStream in;
-    private OutputStream out;
+    public static Selector selector;
+    public static SocketChannel channel;
 
     private long senderId;
 
@@ -276,8 +266,9 @@ public class Client implements ConnectionHandler {
     public void close() {
 
         try {
-            in.close();
-            out.close();
+           // channel.write(ByteBuffer.wrap(this.protocol.encode()));
+            channel.close();
+            selector.close();
         } catch (SocketException e) {
             return;
         } catch (IOException e) {
@@ -311,9 +302,9 @@ public class Client implements ConnectionHandler {
             log.error("Client: main: Failed to create client.", e);
         }
 
-        SocketChannel channel = SocketChannel.open();
+        channel = SocketChannel.open();
         channel.configureBlocking(false);
-        Selector selector = Selector.open();
+        selector = Selector.open();
         channel.register(selector, OP_CONNECT);
         channel.connect(new InetSocketAddress(client.host, client.port));
 
@@ -322,11 +313,12 @@ public class Client implements ConnectionHandler {
         Scanner scanner = new Scanner(System.in);
         BlockingQueue<String> queue = new ArrayBlockingQueue<>(2);
         System.out.println("$");
-        new Thread(() -> {
-            while (true) {
+        Thread enter = new Thread(() -> {
+            while (!Thread.currentThread().isInterrupted()) {
                 String input = scanner.nextLine();
                 if ("q".equals(input)) {
-                    Thread.interrupted();
+                    Thread.currentThread().interrupt();
+                    selector.wakeup();
                     return;
                 }
                 try {
@@ -334,26 +326,33 @@ public class Client implements ConnectionHandler {
                 } catch (Exception e) {
                     log.error("Client: main: Failed to process user input.", e);
                 }
-                SelectionKey key = channel.keyFor(selector);
-                key.interestOps(OP_WRITE);
-                selector.wakeup();
+                //SelectionKey key = channel.keyFor(selector);
+                //key.interestOps(OP_WRITE);
+                //selector.wakeup();
             }
-        }).start();
+        });
+        enter.start();
 
 
-        while (!Thread.currentThread().isInterrupted()) {
-            selector.select();
+        while (!enter.isInterrupted()) {
+            int t = selector.select();
+            System.out.println(t);
+
             for (SelectionKey selectionKey : selector.selectedKeys()) {
                 if (selectionKey.isConnectable()) {
+                    System.out.println("1");
                     // подключиться
                     channel.finishConnect();
                     selectionKey.interestOps(OP_WRITE);
                 } else if (selectionKey.isReadable()) {
+                    System.out.println("2");
                     client.buffer.clear();
                     channel.read(client.buffer);
                     Message message = client.protocol.decode(client.buffer.array());
+                    selectionKey.interestOps(OP_WRITE);
                     client.onMessage(message);
                 } else if (selectionKey.isWritable()) {
+                    System.out.println("3");
                     String line = queue.poll();
                     if (line != null) {
                         Message message = client.processInput(line);
@@ -366,5 +365,6 @@ public class Client implements ConnectionHandler {
             }
         }
         client.close();
+
     }
 }
