@@ -4,12 +4,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.net.SocketException;
+import java.nio.ByteBuffer;
+import java.nio.channels.SelectionKey;
+import java.nio.channels.Selector;
+import java.nio.channels.SocketChannel;
 import java.util.Arrays;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.Scanner;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
 import arhangel.dim.core.messages.*;
 
@@ -22,19 +29,25 @@ import arhangel.dim.core.net.ConnectionHandler;
 import arhangel.dim.core.net.Protocol;
 import arhangel.dim.core.net.ProtocolException;
 
+import static java.nio.ByteBuffer.allocate;
+import static java.nio.channels.SelectionKey.OP_CONNECT;
+import static java.nio.channels.SelectionKey.OP_READ;
+import static java.nio.channels.SelectionKey.OP_WRITE;
+
 /**
  * Клиент для тестирования серверного приложения
  */
 public class Client implements ConnectionHandler {
 
     static Logger log = LoggerFactory.getLogger(Client.class);
+    private ByteBuffer buffer = allocate(255);
 
     /**
      * Протокол, хост и порт инициализируются из конфига
      */
     private Protocol protocol;
     private int port;
-    private String host;
+    private static String host;
 
     /**
      * Тред "слушает" сокет на наличие входящих сообщений от сервера
@@ -65,16 +78,8 @@ public class Client implements ConnectionHandler {
         this.protocol = protocol;
     }
 
-    public int getPort() {
-        return port;
-    }
-
     public void setPort(int port) {
         this.port = port;
-    }
-
-    public String getHost() {
-        return host;
     }
 
     public void setHost(String host) {
@@ -86,32 +91,35 @@ public class Client implements ConnectionHandler {
      */
     public void initSocket() throws IOException {
 
-        Socket socket = new Socket(host, port);
-        in = socket.getInputStream();
-        out = socket.getOutputStream();
+        /**
 
-        socketThread = new Thread(() -> {
-            final byte[] buf = new byte[1024 * 64];
-            log.info("Starting listener thread...");
-            while (!Thread.currentThread().isInterrupted()) {
-                try {
-                    //if (in.available() > 0)
-                    int read = in.read(buf);
-                    if (read > 0) {
-                        Message msg = protocol.decode(Arrays.copyOf(buf, read));
-                        onMessage(msg);
-                    }
-                } catch (SocketException e) {
-                    return;
+         Socket socket = new Socket(host, port);
+         in = socket.getInputStream();
+         out = socket.getOutputStream();
 
-                } catch (IOException | ProtocolException e) {
-                    log.error("Failed into initSocket");
-                    e.printStackTrace();
-                }
-            }
-        });
+         socketThread = new Thread(() -> {
+         final byte[] buf = new byte[1024 * 64];
+         log.info("Starting listener thread...");
+         while (!Thread.currentThread().isInterrupted()) {
+         try {
+         //if (in.available() > 0)
+         int read = in.read(buf);
+         if (read > 0) {
+         Message msg = protocol.decode(Arrays.copyOf(buf, read));
+         onMessage(msg);
+         }
+         } catch (SocketException e) {
+         return;
 
-        socketThread.start();
+         } catch (IOException | ProtocolException e) {
+         log.error("Failed into initSocket");
+         e.printStackTrace();
+         }
+         }
+         });
+
+         socketThread.start();
+         */
     }
 
     /**
@@ -147,7 +155,7 @@ public class Client implements ConnectionHandler {
      *
      * @throws IOException, ProtocolException
      */
-    public void processInput(String line) throws IOException, ProtocolException {
+    public Message processInput(String line) throws IOException, ProtocolException {
 
         String[] tokens = line.split(" ");
         log.info("processInput: Tokens: {}", Arrays.toString(tokens));
@@ -160,11 +168,11 @@ public class Client implements ConnectionHandler {
                     loginMessage.setSenderId(this.getSenderId());
                     loginMessage.setLogin(tokens[1]);
                     loginMessage.setPassword(tokens[2]);
-                    send(loginMessage);
+                    return loginMessage;
                 } else {
                     this.invalidInput();
                 }
-                break;
+                return null;
 
             /**
              * Cообщение, которое не отправляется серверу
@@ -173,7 +181,7 @@ public class Client implements ConnectionHandler {
                 HelpMessage helpMessage = new HelpMessage();
                 helpMessage.setSenderId(this.getSenderId());
                 this.onMessage(helpMessage);
-                break;
+                return null;
 
             case "/text":
                 if (tokens.length > 2) {
@@ -181,15 +189,15 @@ public class Client implements ConnectionHandler {
                     textMessage.setSenderId(this.getSenderId());
                     textMessage.setChatId(tokens[1]);
                     StringBuilder builder = new StringBuilder();
-                    for (int i = 2; i < tokens.length; i ++) {
+                    for (int i = 2; i < tokens.length; i++) {
                         builder.append(tokens[i]).append(" ");
                     }
                     textMessage.setText(builder.toString());
-                    send(textMessage);
+                    return textMessage;
                 } else {
                     this.invalidInput();
                 }
-                break;
+                return null;
 
             case "/info":
                 switch (tokens.length) {
@@ -199,42 +207,29 @@ public class Client implements ConnectionHandler {
                         // число -1 будет обозначать запрос о себе
                         infoMessage.setSenderId(this.getSenderId());
                         infoMessage.setUserId(-1L);
-                        send(infoMessage);
-                        break;
+                        return infoMessage;
+
 
                     case 2:
                         InfoMessage message = new InfoMessage();
                         message.setSenderId(this.getSenderId());
                         message.setUserId(tokens[1]);
-                        send(message);
-                        break;
+                        return message;
 
                     default:
                         this.invalidInput();
+                        return null;
                 }
-                break;
 
             case "/chat_list":
                 if (tokens.length == 1) {
                     ChatListMessage chatListMessage = new ChatListMessage();
                     chatListMessage.setSenderId(this.getSenderId());
-                    send(chatListMessage);
+                    return chatListMessage;
                 } else {
                     this.invalidInput();
+                    return null;
                 }
-                break;
-
-            case "/chat_hist":
-                if (tokens.length == 2) {
-                    ChatHistMessage chatHistMessage = new ChatHistMessage();
-                    chatHistMessage.setSenderId(this.getSenderId());
-                    chatHistMessage.setChatId(tokens[1]);
-                    send(chatHistMessage);
-                } else {
-                    this.invalidInput();
-                }
-                break;
-
 
             case "/chat_create":
                 if (tokens.length > 1) {
@@ -243,24 +238,26 @@ public class Client implements ConnectionHandler {
                     for (int i = 1; i < tokens.length; i++) {
                         chatCreateMessage.addId(tokens[i]);
                     }
-                    send(chatCreateMessage);
+                    return chatCreateMessage;
                 } else {
                     this.invalidInput();
                 }
-                break;
+                return null;
 
             case "/chat_history":
                 if (tokens.length == 2) {
                     ChatHistMessage chatHistMessage = new ChatHistMessage();
                     chatHistMessage.setSenderId(this.getSenderId());
                     chatHistMessage.setChatId(tokens[1]);
+                    return chatHistMessage;
                 } else {
                     this.invalidInput();
                 }
-                break;
+                return null;
 
             default:
                 this.invalidInput();
+                return null;
         }
     }
 
@@ -270,12 +267,7 @@ public class Client implements ConnectionHandler {
     @Override
     public void send(Message msg) throws IOException, ProtocolException {
 
-        out.write(protocol.encode(msg));
-        log.info("send: message sent {}", msg.toString());
-        // flush очищает любые выходные буферы, завершая операцию вывода.
-        out.flush();
     }
-
 
     /**
      * Молча (без проброса ошибок) закрываем соединение и освобождаем ресурсы
@@ -283,7 +275,6 @@ public class Client implements ConnectionHandler {
     @Override
     public void close() {
 
-        socketThread.interrupt();
         try {
             in.close();
             out.close();
@@ -312,34 +303,68 @@ public class Client implements ConnectionHandler {
     public static void main(String[] args) throws Exception {
 
         Client client = null;
-        try {
 
+        try {
             Container context = new Container("client.xml");
             client = (Client) context.getByName("client");
+        } catch (InvalidConfigurationException e) {
+            log.error("Client: main: Failed to create client.", e);
+        }
 
-            client.initSocket();
+        SocketChannel channel = SocketChannel.open();
+        channel.configureBlocking(false);
+        Selector selector = Selector.open();
+        channel.register(selector, OP_CONNECT);
+        channel.connect(new InetSocketAddress(client.host, client.port));
 
-            Scanner scanner = new Scanner(System.in);
-            System.out.println("$");
+        //client.initSocket();
+
+        Scanner scanner = new Scanner(System.in);
+        BlockingQueue<String> queue = new ArrayBlockingQueue<>(2);
+        System.out.println("$");
+        new Thread(() -> {
             while (true) {
                 String input = scanner.nextLine();
                 if ("q".equals(input)) {
+                    Thread.interrupted();
                     return;
                 }
                 try {
-                    client.processInput(input);
-                } catch (ProtocolException | IOException e) {
+                    queue.put(input);
+                } catch (Exception e) {
                     log.error("Client: main: Failed to process user input.", e);
                 }
+                SelectionKey key = channel.keyFor(selector);
+                key.interestOps(OP_WRITE);
+                selector.wakeup();
             }
-        } catch (InvalidConfigurationException e) {
-            log.error("Client: main: Failed to create client.", e);
-        } catch (Exception e) {
-            log.error("Client: main: Application failed.", e);
-        } finally {
-            if (client != null) {
-                client.close();
+        }).start();
+
+
+        while (!Thread.currentThread().isInterrupted()) {
+            selector.select();
+            for (SelectionKey selectionKey : selector.selectedKeys()) {
+                if (selectionKey.isConnectable()) {
+                    // подключиться
+                    channel.finishConnect();
+                    selectionKey.interestOps(OP_WRITE);
+                } else if (selectionKey.isReadable()) {
+                    client.buffer.clear();
+                    channel.read(client.buffer);
+                    Message message = client.protocol.decode(client.buffer.array());
+                    client.onMessage(message);
+                } else if (selectionKey.isWritable()) {
+                    String line = queue.poll();
+                    if (line != null) {
+                        Message message = client.processInput(line);
+                        if (message != null) {
+                            channel.write(ByteBuffer.wrap(client.protocol.encode(message)));
+                            selectionKey.interestOps(OP_READ);
+                        }
+                    }
+                }
             }
         }
+        client.close();
     }
 }

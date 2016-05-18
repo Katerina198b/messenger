@@ -45,7 +45,7 @@ public class ContainerTest {
     public void testGetByName() throws Exception {
         Car car = (Car) container.getByName("carBean");
         Assert.assertTrue(car != null);
-        Assert.assertEquals(expectedCar.i, car.i);
+
     }
 
     @Test
