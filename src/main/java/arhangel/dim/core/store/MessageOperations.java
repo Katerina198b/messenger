@@ -144,12 +144,15 @@ public class MessageOperations implements MessageStore {
     public void addMessage(Long chatId, Message message) {
 
         TextMessage textMessage = (TextMessage) message;
+        if (textMessage.getText().length() >= 300) {
+            log.info("Accepted too long message");
+            textMessage.setText(textMessage.getText().substring(0, 298));
+        }
         try {
             PreparedStatement statement = connection
                     .prepareStatement("INSERT INTO MESSAGE (user_id,text,chat_id) " +
                             "VALUES (?, ?, ?);");
             statement.setLong(1, textMessage.getSenderId());
-            // TODO: 15.05.16 обработать привышение в 300 символов
             statement.setString(2, textMessage.getText());
             statement.setLong(3, textMessage.getChatId());
             statement.executeUpdate();

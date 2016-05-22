@@ -33,6 +33,13 @@ public class TextCommand implements Command {
             if (optionalUser.isPresent()) {
 
                 MessageOperations messageOperations = new MessageOperations(session.getConnection());
+                if (!messageOperations.getChatsByUserId(textMessage.getSenderId()).contains(textMessage.getChatId())){
+                    ErrorMessage errorMessage = new ErrorMessage();
+                    errorMessage.setSenderId(textMessage.getSenderId());
+                    errorMessage.setText("Sorry, you are not included in this chat");
+                    session.send(errorMessage);
+                    return;
+                }
                 messageOperations.addMessage(textMessage.getChatId(), textMessage);
                 Chat chat = messageOperations.getChatById(textMessage.getChatId());
                 StatusMessage statusMessage = new StatusMessage();
@@ -56,7 +63,7 @@ public class TextCommand implements Command {
                     }
                 }
                 session.send(statusMessage);
-                //TODO отправить всем сообщение, подумать о доступе к разд ресурсу
+
 
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();

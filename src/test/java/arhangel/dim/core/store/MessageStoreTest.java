@@ -72,8 +72,6 @@ public class MessageStoreTest {
     }
 
 
-    //TODO если останется время то
-    // припилить проверку на присутствие юзеа в чате
 
     @Test
     public void addUserToChat() throws Exception {

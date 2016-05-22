@@ -31,13 +31,20 @@ public class ChatHistCommand implements Command {
             if (optionalUser.isPresent()) {
                 ChatHistMessage chatHistMessage = (ChatHistMessage) message;
                 MessageOperations messageOperations = new MessageOperations(session.getConnection());
+                if (!messageOperations.getChatsByUserId(session.getUser().getId()).contains(chatHistMessage.getChatId())) {
+                    ErrorMessage errorMessage = new ErrorMessage();
+                    errorMessage.setSenderId(session.getUser().getId());
+                    errorMessage.setText("Sorry, you are not included in this chat");
+                    session.send(errorMessage);
+                    return;
+                }
                 List<Long> messages = messageOperations.getMessagesFromChat(chatHistMessage.getChatId());
                 ChatHistResultMessage chatHistResultMessage = new ChatHistResultMessage();
                 chatHistResultMessage.setType(Type.MSG_CHAT_HIST_RESULT);
                 chatHistResultMessage.setSenderId(session.getUser().getId());
 
-                for (int i = 0; i < messages.size(); i++) {
-                    TextMessage textMessage = (TextMessage) messageOperations.getMessageById(messages.get(i));
+                for (Long messageId: messages) {
+                    TextMessage textMessage = (TextMessage) messageOperations.getMessageById(messageId);
                     chatHistResultMessage.addMessage(textMessage);
                 }
                 session.send(chatHistResultMessage);
