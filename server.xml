@@ -1,10 +1,17 @@
 <root>
 
         <bean id="protocol" class="arhangel.dim.core.net.StringProtocol"/>
+        <bean id="database" class="arhangel.dim.core.net.DatabaseConnection">
+            <property name="url" val="jdbc:postgresql://178.62.140.149:5432/Katerina198b"/>
+            <property name="login" val="trackuser"/>
+            <property name="password" val="trackuser"/>
+            <property name="clas" val="org.postgresql.Driver"/>
+        </bean>
 
         <bean id="server" class="arhangel.dim.server.Server">
             <property name="port" val="19000"/>
             <property name="protocol" ref="protocol"/>
+            <property name="database" ref="database"/>
         </bean>
 
 

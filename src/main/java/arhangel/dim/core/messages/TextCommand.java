@@ -5,13 +5,16 @@ package arhangel.dim.core.messages;
  * (только для залогиненных пользователей)
  */
 
+import arhangel.dim.core.Chat;
 import arhangel.dim.core.User;
+import arhangel.dim.core.net.ProtocolException;
 import arhangel.dim.core.net.Session;
 import arhangel.dim.core.store.MessageOperations;
 import arhangel.dim.core.store.UserOperations;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.ResultSet;
@@ -31,11 +34,29 @@ public class TextCommand implements Command {
 
                 MessageOperations messageOperations = new MessageOperations(session.getConnection());
                 messageOperations.addMessage(textMessage.getChatId(), textMessage);
+                Chat chat = messageOperations.getChatById(textMessage.getChatId());
                 StatusMessage statusMessage = new StatusMessage();
                 statusMessage.setType(Type.MSG_STATUS);
                 statusMessage.setSenderId(session.getUser().getId());
                 statusMessage.setStatus(Status.ACCEPTED);
+                for (Session currentSession : session.getServer().getCurrentSessions()) {
+                    if ((chat.getParticipants().contains(currentSession.getUser().getId()) ||
+                            currentSession.getUser().getId() == chat.getAdmin()) &&
+                            currentSession.getUser().getId() != textMessage.getSenderId()) {
+                        new Thread(() -> {
+
+                            try {
+                                currentSession.send(textMessage);
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                log.error("Failed to send message to {}",currentSession.getUser().getName());
+                            }
+
+                        }).start();
+                    }
+                }
                 session.send(statusMessage);
+                //TODO отправить всем сообщение, подумать о доступе к разд ресурсу
 
             } else {
                 ErrorMessage errorMessage = new ErrorMessage();

@@ -7,11 +7,13 @@ import java.net.Socket;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
 import arhangel.dim.core.User;
 import arhangel.dim.core.messages.*;
 import arhangel.dim.server.Server;
+import com.sun.istack.internal.NotNull;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,8 +30,9 @@ public class Session implements ConnectionHandler {
      */
     private User user;
 
-    // сокет на клиента
+
     private Socket socket;
+    private Server server;
 
     /**
      * С каждым сокетом связано 2 канала in/out
@@ -43,41 +46,33 @@ public class Session implements ConnectionHandler {
     /**
      * Для каждого потока (пользователя, сессии) должен быть свой connection
      */
-    public Connection connection;
+    private Connection connection;
 
 
     public Session(Socket socket, Server server) throws IOException {
         this.socket = socket;
-        this.in = socket.getInputStream();
-        this.out = socket.getOutputStream();
-        this.protocol = server.getProtocol();
-        this.setConnection();
+        in = socket.getInputStream();
+        out = socket.getOutputStream();
+        protocol = server.getProtocol();
+        connection = server.getDatabase().getConnection();
+        this.server = server;
     }
 
     public void setUser(User user) {
         this.user = user;
+        server.addSession(this);
+    }
+
+    public Connection getConnection() {
+        return connection;
     }
 
     public User getUser() {
         return user;
     }
 
-    public void setConnection() {
-        try {
-            Class.forName("org.postgresql.Driver");
-            connection = DriverManager.getConnection("jdbc:postgresql://178.62.140.149:5432/Katerina198b",
-                    "trackuser", "trackuser");
-            connection.setAutoCommit(false);
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.error("Failed into setConnection");
-        }
-
-
-    }
-
-    public Connection getConnection() {
-        return connection;
+    public Server getServer() {
+        return server;
     }
 
     @Override
@@ -101,6 +96,7 @@ public class Session implements ConnectionHandler {
 
         log.info("onMessage: {}", msg.toString());
         Type type = msg.getType();
+
         try {
             switch (type) {
                 case MSG_CHAT_CREATE:
@@ -149,9 +145,9 @@ public class Session implements ConnectionHandler {
         try {
             byte[] buf = new byte[32 * 1024];
             in.read(buf);
+
             Message msg = protocol.decode(buf);
             if (msg == null) {
-                log.info("User disconnected");
                 close();
                 return;
             }
@@ -166,6 +162,7 @@ public class Session implements ConnectionHandler {
 
     @Override
     public void close() {
+        server.removeUser(this);
         try {
             log.info("close: Trying to close in/out channels and socket in Session");
             in.close();

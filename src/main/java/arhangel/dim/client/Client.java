@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.SocketException;
 import java.nio.ByteBuffer;
+import java.nio.channels.Channel;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
@@ -47,8 +48,9 @@ public class Client implements ConnectionHandler {
     /**
      * Тред "слушает" сокет на наличие входящих сообщений от сервера
      */
-    public static Selector selector;
-    public static SocketChannel channel;
+    public  Selector selector;
+    public  SocketChannel channel;
+    private boolean interrupted;
 
     private long senderId;
 
@@ -58,10 +60,6 @@ public class Client implements ConnectionHandler {
 
     public long getSenderId() {
         return senderId;
-    }
-
-    public Protocol getProtocol() {
-        return protocol;
     }
 
     public void setProtocol(Protocol protocol) {
@@ -117,15 +115,19 @@ public class Client implements ConnectionHandler {
      */
     @Override
     public void onMessage(Message msg) {
-
-        if (msg.getType() == Type.MSG_INFO_RESULT) {
-            InfoResultMessage infoResultMessage = (InfoResultMessage) msg;
-            if (infoResultMessage.getNewSession()) {
-                this.setSenderId(infoResultMessage.getUserId());
-                System.out.println("Login is successful");
+        try {
+            if (msg.getType() == Type.MSG_INFO_RESULT) {
+                InfoResultMessage infoResultMessage = (InfoResultMessage) msg;
+                if (infoResultMessage.getNewSession()) {
+                    this.setSenderId(infoResultMessage.getUserId());
+                    System.out.println("Login is successful");
+                }
             }
+            System.out.println(msg.toString());
+        } catch (Exception e) {
+            System.out.println("Server is not available. Please restart.");
+            interrupted = true;
         }
-        System.out.println(msg.toString());
         System.out.println("$");
 
     }
@@ -155,7 +157,7 @@ public class Client implements ConnectionHandler {
             case "/login":
                 if (tokens.length == 3) {
                     LoginMessage loginMessage = new LoginMessage();
-                    loginMessage.setSenderId(this.getSenderId());
+                    loginMessage.setSenderId(getSenderId());
                     loginMessage.setLogin(tokens[1]);
                     loginMessage.setPassword(tokens[2]);
                     return loginMessage;
@@ -169,14 +171,14 @@ public class Client implements ConnectionHandler {
              */
             case "/help":
                 HelpMessage helpMessage = new HelpMessage();
-                helpMessage.setSenderId(this.getSenderId());
-                this.onMessage(helpMessage);
+                helpMessage.setSenderId(getSenderId());
+                onMessage(helpMessage);
                 return null;
 
             case "/text":
                 if (tokens.length > 2) {
                     TextMessage textMessage = new TextMessage();
-                    textMessage.setSenderId(this.getSenderId());
+                    textMessage.setSenderId(getSenderId());
                     textMessage.setChatId(tokens[1]);
                     StringBuilder builder = new StringBuilder();
                     for (int i = 2; i < tokens.length; i++) {
@@ -195,14 +197,14 @@ public class Client implements ConnectionHandler {
                     case 1:
                         InfoMessage infoMessage = new InfoMessage();
                         // число -1 будет обозначать запрос о себе
-                        infoMessage.setSenderId(this.getSenderId());
+                        infoMessage.setSenderId(getSenderId());
                         infoMessage.setUserId(-1L);
                         return infoMessage;
 
 
                     case 2:
                         InfoMessage message = new InfoMessage();
-                        message.setSenderId(this.getSenderId());
+                        message.setSenderId(getSenderId());
                         message.setUserId(tokens[1]);
                         return message;
 
@@ -214,7 +216,7 @@ public class Client implements ConnectionHandler {
             case "/chat_list":
                 if (tokens.length == 1) {
                     ChatListMessage chatListMessage = new ChatListMessage();
-                    chatListMessage.setSenderId(this.getSenderId());
+                    chatListMessage.setSenderId(getSenderId());
                     return chatListMessage;
                 } else {
                     this.invalidInput();
@@ -237,7 +239,7 @@ public class Client implements ConnectionHandler {
             case "/chat_history":
                 if (tokens.length == 2) {
                     ChatHistMessage chatHistMessage = new ChatHistMessage();
-                    chatHistMessage.setSenderId(this.getSenderId());
+                    chatHistMessage.setSenderId(getSenderId());
                     chatHistMessage.setChatId(tokens[1]);
                     return chatHistMessage;
                 } else {
@@ -266,7 +268,6 @@ public class Client implements ConnectionHandler {
     public void close() {
 
         try {
-           // channel.write(ByteBuffer.wrap(this.protocol.encode()));
             channel.close();
             selector.close();
         } catch (SocketException e) {
@@ -275,6 +276,7 @@ public class Client implements ConnectionHandler {
             log.error("Failed into close.");
             e.printStackTrace();
         }
+
     }
 
     @Override
@@ -302,23 +304,23 @@ public class Client implements ConnectionHandler {
             log.error("Client: main: Failed to create client.", e);
         }
 
-        channel = SocketChannel.open();
-        channel.configureBlocking(false);
-        selector = Selector.open();
-        channel.register(selector, OP_CONNECT);
-        channel.connect(new InetSocketAddress(client.host, client.port));
+        client.channel = SocketChannel.open();
+        client.channel.configureBlocking(false);
+        client.selector = Selector.open();
+        client.channel.register(client.selector, OP_CONNECT);
+        client.channel.connect(new InetSocketAddress(client.host, client.port));
 
-        //client.initSocket();
 
-        Scanner scanner = new Scanner(System.in);
         BlockingQueue<String> queue = new ArrayBlockingQueue<>(2);
         System.out.println("$");
+        final Client finalClient = client;
         Thread enter = new Thread(() -> {
-            while (!Thread.currentThread().isInterrupted()) {
+            Scanner scanner = new Scanner(System.in);
+            while (true) {
                 String input = scanner.nextLine();
                 if ("q".equals(input)) {
-                    Thread.currentThread().interrupt();
-                    selector.wakeup();
+                    finalClient.interrupted = true;
+                    finalClient.selector.wakeup();
                     return;
                 }
                 try {
@@ -326,45 +328,42 @@ public class Client implements ConnectionHandler {
                 } catch (Exception e) {
                     log.error("Client: main: Failed to process user input.", e);
                 }
-                //SelectionKey key = channel.keyFor(selector);
-                //key.interestOps(OP_WRITE);
-                //selector.wakeup();
+                SelectionKey key = finalClient.channel.keyFor(finalClient.selector);
+                key.interestOps(OP_WRITE);
+                finalClient.selector.wakeup();
             }
         });
         enter.start();
 
 
-        while (!enter.isInterrupted()) {
-            int t = selector.select();
-            System.out.println(t);
-
-            for (SelectionKey selectionKey : selector.selectedKeys()) {
+        while (!client.interrupted) {
+            client.selector.select();
+            for (SelectionKey selectionKey : client.selector.selectedKeys()) {
                 if (selectionKey.isConnectable()) {
-                    System.out.println("1");
                     // подключиться
-                    channel.finishConnect();
+                    client.channel.finishConnect();
                     selectionKey.interestOps(OP_WRITE);
                 } else if (selectionKey.isReadable()) {
-                    System.out.println("2");
                     client.buffer.clear();
-                    channel.read(client.buffer);
+                    client.channel.read(client.buffer);
                     Message message = client.protocol.decode(client.buffer.array());
                     selectionKey.interestOps(OP_WRITE);
                     client.onMessage(message);
+                    client.buffer.flip();
+                    Thread.sleep(500);
+
                 } else if (selectionKey.isWritable()) {
-                    System.out.println("3");
                     String line = queue.poll();
                     if (line != null) {
                         Message message = client.processInput(line);
                         if (message != null) {
-                            channel.write(ByteBuffer.wrap(client.protocol.encode(message)));
-                            selectionKey.interestOps(OP_READ);
+                            client.channel.write(ByteBuffer.wrap(client.protocol.encode(message)));
                         }
                     }
+                    selectionKey.interestOps(OP_READ);
                 }
             }
         }
         client.close();
-
     }
 }

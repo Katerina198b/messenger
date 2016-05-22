@@ -6,6 +6,7 @@ import arhangel.dim.core.messages.Message;
 import arhangel.dim.core.messages.TextMessage;
 import arhangel.dim.core.messages.Type;
 import com.sun.istack.internal.NotNull;
+import org.omg.CORBA.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -48,6 +49,7 @@ public class MessageOperations implements MessageStore {
         }
         return chatList;
     }
+
 
     @Override
     public Chat getChatById(Long chatId) {
@@ -147,7 +149,7 @@ public class MessageOperations implements MessageStore {
                     .prepareStatement("INSERT INTO MESSAGE (user_id,text,chat_id) " +
                             "VALUES (?, ?, ?);");
             statement.setLong(1, textMessage.getSenderId());
-            //// TODO: 15.05.16 обработать привышение в 300 символов
+            // TODO: 15.05.16 обработать привышение в 300 символов
             statement.setString(2, textMessage.getText());
             statement.setLong(3, textMessage.getChatId());
             statement.executeUpdate();

@@ -50,6 +50,7 @@ public class LoginCommand implements Command {
                         session.send(errorMessage);
                     } else {
                         log.info("Creating new user..");
+
                         User newUser = userOperations.addUser(loginMessage.getLogin(), loginMessage.getPassword());
                         InfoResultMessage infoMessage = new InfoResultMessage();
                         session.setUser(newUser);

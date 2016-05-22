@@ -3,6 +3,7 @@ package arhangel.dim.server;
 import arhangel.dim.container.Container;
 import arhangel.dim.container.InvalidConfigurationException;
 import arhangel.dim.core.messages.*;
+import arhangel.dim.core.net.DatabaseConnection;
 import arhangel.dim.core.net.Protocol;
 import arhangel.dim.core.net.ProtocolException;
 import arhangel.dim.core.net.Session;
@@ -22,7 +23,9 @@ import java.net.ServerSocket;
 import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.ServerSocketChannel;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.function.UnaryOperator;
@@ -32,16 +35,33 @@ import java.util.function.UnaryOperator;
  */
 public class Server {
 
-    public static final int DEFAULT_MAX_CONNECT = 16;
+    public static final int DEFAULT_MAX_CONNECT = Runtime.getRuntime().availableProcessors();
     static Logger log = LoggerFactory.getLogger(Server.class);
-
+    private List<Session> currentSessions = new ArrayList<>();
 
     private int port;
     private Protocol protocol;
     private ServerSocket serverSocket;
+    private DatabaseConnection database;
+
+    public void removeUser(Session session) {
+        currentSessions.remove(session);
+    }
+
+    public DatabaseConnection getDatabase() {
+        return database;
+    }
 
     public Protocol getProtocol() {
         return protocol;
+    }
+
+    public List<Session> getCurrentSessions() {
+        return currentSessions;
+    }
+
+    public void addSession(Session session) {
+        currentSessions.add(session);
     }
 
     public void stop(ExecutorService pool) {
@@ -66,8 +86,9 @@ public class Server {
                         try {
                             log.info("Accepted. " + socket.getInetAddress());
                             Session session = new Session(socket, server);
-                            session.expectMessage();
-
+                            while (!Thread.currentThread().isInterrupted()) {
+                                session.expectMessage();
+                            }
                         } catch (IOException e) {
                             e.printStackTrace();
                             log.error("Failed to creating session: ", e);
@@ -78,7 +99,6 @@ public class Server {
                 }
 
             }
-
             server.stop(pool);
 
         } catch (IOException e) {
@@ -86,7 +106,6 @@ public class Server {
             log.error("Failed to reading: {}", e);
         } catch (InvalidConfigurationException e) {
             log.error("Failed to create server", e);
-            return;
         }
     }
 }

@@ -18,7 +18,7 @@ import static java.nio.channels.SelectionKey.OP_WRITE;
  *
  */
 public class NioClient {
-    static final int PORT = 9090;
+    static final int PORT = 19000;
     static final String ADDRESS = "localhost";
     private ByteBuffer buffer = allocate(16);
 
@@ -28,6 +28,7 @@ public class NioClient {
         Selector selector = Selector.open();
         channel.register(selector, OP_CONNECT);
         channel.connect(new InetSocketAddress(ADDRESS, PORT));
+
         BlockingQueue<String> queue = new ArrayBlockingQueue<>(2);
         new Thread(() -> {
             Scanner scanner = new Scanner(System.in);
@@ -43,11 +44,12 @@ public class NioClient {
                 }
                 SelectionKey key = channel.keyFor(selector);
                 key.interestOps(OP_WRITE);
-                selector.wakeup();
+                //selector.wakeup();
             }
         }).start();
         while (true) {
-            selector.select();
+
+            System.out.println(selector.select());
             for (SelectionKey selectionKey : selector.selectedKeys()) {
                 if (selectionKey.isConnectable()) {
                     channel.finishConnect();

@@ -43,7 +43,7 @@ public class MessageStoreTest {
 
 
     }
-    //TODO починить
+
     @Test
     public void getChatById() throws Exception {
 

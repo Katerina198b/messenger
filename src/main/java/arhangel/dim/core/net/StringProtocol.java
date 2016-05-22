@@ -19,9 +19,15 @@ public class StringProtocol implements Protocol {
     public Message decode(byte[] bytes) throws ProtocolException {
 
         String str = new String(bytes);
-        log.info("decoded: {}", str);
         String[] tokens = str.split(DELIMITER);
-        Type type = Type.valueOf(tokens[0]);
+        Type type = null;
+        try {
+            type = Type.valueOf(tokens[0]);
+        } catch (Exception e) {
+            log.info("disconnected");
+            return null;
+        }
+        log.info(str);
         switch (type) {
 
             case MSG_TEXT:
@@ -146,7 +152,7 @@ public class StringProtocol implements Protocol {
 
             case MSG_STATUS:
                 StatusMessage statusMessage = (StatusMessage) msg;
-                builder.append(statusMessage.getStatus());
+                builder.append(statusMessage.getStatus()).append(DELIMITER);
                 break;
 
             case MSG_INFO:

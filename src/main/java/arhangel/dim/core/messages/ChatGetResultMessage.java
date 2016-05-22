@@ -1,7 +1,6 @@
 package arhangel.dim.core.messages;
 
 import java.util.Objects;
-//TODO разобраться с типом данных
 
 public class ChatGetResultMessage extends Message {
 
